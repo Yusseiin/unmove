@@ -1,0 +1,13 @@
+{
+  "language": "en",
+  "seriesBaseFolders": [
+    "Anime",
+    "Series"
+  ],
+  "moviesBaseFolders": [
+    "Film"
+  ],
+  "movieFolderStructure": "year",
+  "seriesBaseFolder": "Series",
+  "moviesBaseFolder": "Film"
+}

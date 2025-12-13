@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  unmove:
+    image: yusseiin/unmove:v0.0.1
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_VERSION: "v0.0.1"
+    container_name: unmove
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3213}:3000"
+    environment:
+      NODE_ENV: production
+      # These paths are INSIDE the container - don't change these
+      DOWNLOAD_PATH: /downloads
+      MEDIA_PATH: /media
+      CONFIG_PATH: /config
+      # User must provide TVDB API key
+      TVDB_API_KEY: ${TVDB_API_KEY}
+    volumes:
+      # Map your host paths to container paths
+      # For Unraid: /mnt/user/downloads:/downloads
+      - ${DOWNLOADS_PATH:-/mnt/user/downloads}:/downloads
+      - ${MEDIA_PATH:-/mnt/user/media}:/media
+      - ${CONFIG_PATH:-/mnt/user/appdata/unmove}:/config
