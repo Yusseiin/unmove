@@ -79,12 +79,12 @@ Available in Community Applications. Search for "unmove" or install manually usi
 
 1. Create a free account at [thetvdb.com](https://thetvdb.com)
 2. Go to [API Information](https://thetvdb.com/api-information) and generate an API key
-3. Enter your API key in the app settings (gear icon)
+3. Enter your API key in the env
 
 ## Usage
 
 1. Open the web interface at `http://your-server:3000`
-2. Click the gear icon and enter your TVDB API key
+2. Click the gear icon and select your preference
 3. Browse your downloads folder
 4. Select files to identify
 5. Use "Identify" for single files or "Batch Identify" for multiple files
