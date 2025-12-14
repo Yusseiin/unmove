@@ -135,7 +135,7 @@ docker build --build-arg NEXT_PUBLIC_VERSION=0.0.1 -t unmove .
 
 ## Tech Stack
 
-- [Next.js 15](https://nextjs.org/) - React framework
+- [Next.js 16](https://nextjs.org/) - React framework
 - [React 19](https://react.dev/) - UI library
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
