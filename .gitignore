@@ -10,7 +10,7 @@
 !.yarn/releases
 !.yarn/versions
 /.claude
-
+readme.local
 # testing
 /coverage
 
