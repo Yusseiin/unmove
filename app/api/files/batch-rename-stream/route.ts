@@ -335,6 +335,12 @@ export async function POST(request: NextRequest) {
               try {
                 await fs.rename(sourceFull, destFull);
                 usedRename = true;
+                // Set permissions on renamed file/directory
+                if (isDirectory) {
+                  await setDirectoryPermissions(destFull);
+                } else {
+                  await setFilePermissions(destFull);
+                }
                 // Send instant completion for this file
                 sendProgress({
                   type: "file_progress",
@@ -349,12 +355,11 @@ export async function POST(request: NextRequest) {
                   bytesPerSecond: 0, // Instant, no meaningful speed
                 });
               } catch (renameErr: unknown) {
-                // If EXDEV (cross-device link), fall back to copy+delete
-                // Otherwise rethrow the error
-                if ((renameErr as NodeJS.ErrnoException).code !== "EXDEV") {
-                  throw renameErr;
-                }
-                // Continue to copy+delete below
+                const errCode = (renameErr as NodeJS.ErrnoException).code;
+                // Log the error for debugging
+                console.log(`fs.rename failed: ${errCode} - falling back to copy+delete`);
+                // For any rename error (EXDEV, EPERM, etc.), fall back to copy+delete
+                // This handles cross-device moves and permission issues in Docker
               }
             }
 

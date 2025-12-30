@@ -20,7 +20,9 @@ A self-hosted web application to organize your media library by identifying file
 
 ## Installation
 
-### Docker (Recommended)
+### Docker (Recommended - Instant Moves)
+
+For **instant file moves** (no copy+delete), mount downloads and media under the same parent directory:
 
 ```bash
 docker run -d \
@@ -28,13 +30,16 @@ docker run -d \
   -p 3000:3000 \
   -e PUID=99 \
   -e PGID=100 \
-  -v /path/to/downloads:/downloads \
-  -v /path/to/media:/media \
+  -v /mnt/user:/data \
   -v /path/to/config:/config \
+  -e DOWNLOAD_PATH=/data/downloads \
+  -e MEDIA_PATH=/data/media \
   yusseiin/unmove:latest
 ```
 
-### Docker Compose
+> **Why?** When downloads and media are on the same Docker volume, moving files is instant (just a rename). With separate volumes, Docker must copy the file then delete it.
+
+### Docker Compose (Recommended - Instant Moves)
 
 ```yaml
 version: "3.8"
@@ -47,16 +52,47 @@ services:
     environment:
       - PUID=99
       - PGID=100
+      - DOWNLOAD_PATH=/data/downloads
+      - MEDIA_PATH=/data/media
     volumes:
-      - /path/to/downloads:/downloads
-      - /path/to/media:/media
+      - /mnt/user:/data          # Single mount for instant moves
       - /path/to/config:/config
     restart: unless-stopped
+```
+
+### Docker (Legacy - Separate Volumes)
+
+If you prefer separate volume mounts (moves will copy+delete instead of instant):
+
+```bash
+docker run -d \
+  --name unmove \
+  -p 3000:3000 \
+  -e PUID=99 \
+  -e PGID=100 \
+  -v /path/to/downloads:/downloads \
+  -v /path/to/media:/media \
+  -v /path/to/config:/config \
+  -e DOWNLOAD_PATH=/downloads \
+  -e MEDIA_PATH=/media \
+  yusseiin/unmove:latest
 ```
 
 ### Unraid
 
 Available in Community Applications. Search for "unmove" or install manually using the Docker Hub image `yusseiin/unmove:latest`.
+
+**For instant moves on Unraid**, use the recommended configuration that mounts `/mnt/user` as a single volume.
+
+> ⚠️ **Important Note about Instant Moves on Unraid**
+>
+> Even with a single Docker volume mount, instant moves will only work if both the downloads and media folders are on the **same physical disk**. Unraid's `/mnt/user` is a virtual filesystem (shfs/fuse) that spans multiple disks. If your downloads are on `disk1` and media is on `disk2`, the system must copy+delete the file regardless of the Docker configuration.
+>
+> **To ensure instant moves:**
+> - Configure both shares (downloads and media) to use the same disk in Unraid's share settings, OR
+> - Mount a specific disk directly: `-v /mnt/disk1:/data` instead of `/mnt/user:/data`
+>
+> If your files are on different physical disks, the application will automatically fall back to copy+delete (which is slower but works correctly).
 
 ## Configuration
 
@@ -66,14 +102,29 @@ Available in Community Applications. Search for "unmove" or install manually usi
 |----------|---------|-------------|
 | `PUID` | 99 | User ID for file permissions |
 | `PGID` | 100 | Group ID for file permissions |
+| `DOWNLOAD_PATH` | `/data/downloads` | Path to downloads inside container |
+| `MEDIA_PATH` | `/data/media` | Path to media library inside container |
 
 ### Volumes
+
+**Recommended (Instant Moves):**
+
+| Container Path | Description |
+|----------------|-------------|
+| `/data` | Parent directory containing both downloads and media (enables instant moves) |
+| `/config` | Configuration storage |
+
+With `DOWNLOAD_PATH=/data/downloads` and `MEDIA_PATH=/data/media`
+
+**Legacy (Separate Volumes):**
 
 | Container Path | Description |
 |----------------|-------------|
 | `/downloads` | Your downloads folder (source) |
 | `/media` | Your media library (destination) |
 | `/config` | Configuration storage |
+
+With `DOWNLOAD_PATH=/downloads` and `MEDIA_PATH=/media`
 
 ### TVDB API Key
 

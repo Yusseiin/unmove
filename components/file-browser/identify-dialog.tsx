@@ -1421,7 +1421,7 @@ export function IdentifyDialog({
                                       E{formatSeason(ep.number)}
                                     </span>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[200px]">
+                                  <TooltipContent side="top" className="max-w-50">
                                     <p className="text-xs">
                                       S{formatSeason(season)}E{formatSeason(ep.number)} - {getEpisodeDisplayName(ep)}
                                     </p>

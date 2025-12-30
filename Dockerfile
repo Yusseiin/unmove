@@ -40,8 +40,18 @@ ENV NODE_ENV=production
 
 # Set default paths (these are the paths INSIDE the container)
 # Users mount their host paths to these container paths via volumes
-ENV DOWNLOAD_PATH=/downloads
-ENV MEDIA_PATH=/media
+#
+# For INSTANT MOVES on same disk (recommended for Unraid):
+#   Mount a single parent directory to /data and set:
+#   - DOWNLOAD_PATH=/data/downloads
+#   - MEDIA_PATH=/data/media
+#   This allows fs.rename() to work instantly instead of copy+delete
+#
+# Traditional setup (separate volumes - moves will copy+delete):
+#   - DOWNLOAD_PATH=/downloads
+#   - MEDIA_PATH=/media
+ENV DOWNLOAD_PATH=/data/downloads
+ENV MEDIA_PATH=/data/media
 ENV CONFIG_PATH=/config
 
 # Copy standalone build
