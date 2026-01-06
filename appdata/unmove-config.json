@@ -64,5 +64,7 @@
     "ITA",
     "AC3"
   ],
+  "seriesMetadataProvider": "tvdb",
+  "moviesMetadataProvider": "tmdb",
   "metadataProvider": "tmdb"
 }

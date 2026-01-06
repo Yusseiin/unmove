@@ -16,9 +16,11 @@ interface TransferChoiceDialogProps {
   onOpenChange: (open: boolean) => void;
   operation: "copy" | "move";
   itemCount: number;
-  metadataProvider?: MetadataProvider;
+  seriesMetadataProvider?: MetadataProvider;
+  moviesMetadataProvider?: MetadataProvider;
   onNormalTransfer: () => void;
   onIdentify: () => void;
+  onIdentifyMovie?: () => void; // For identifying a single file as a movie
   onBatchIdentify?: () => void; // For identifying multiple movies separately
   onMultiSeriesTransfer?: () => void; // For identifying multiple different TV series
 }
@@ -28,15 +30,18 @@ export function TransferChoiceDialog({
   onOpenChange,
   operation,
   itemCount,
-  metadataProvider = "tvdb",
+  seriesMetadataProvider = "tvdb",
+  moviesMetadataProvider = "tmdb",
   onNormalTransfer,
   onIdentify,
+  onIdentifyMovie,
   onBatchIdentify,
   onMultiSeriesTransfer,
 }: TransferChoiceDialogProps) {
   const operationText = operation === "copy" ? "Copy" : "Move";
   const itemText = itemCount === 1 ? "item" : "items";
-  const providerName = metadataProvider === "tmdb" ? "TMDB" : "TVDB";
+  const seriesProviderName = seriesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
+  const moviesProviderName = moviesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,12 +71,25 @@ export function TransferChoiceDialog({
             onClick={onIdentify}
           >
             <span className="font-semibold text-sm sm:text-base">
-              {itemCount === 1 ? `Identify File with ${providerName}` : `Identify TV Series with ${providerName}`}
+              {itemCount === 1 ? `Identify as TV Series with ${seriesProviderName}` : `Identify TV Series with ${seriesProviderName}`}
             </span>
             <span className="text-xs sm:text-sm text-muted-foreground text-left">
-              Search {providerName} to identify and rename as TV series episodes
+              Search {seriesProviderName} to identify and rename as TV series episodes
             </span>
           </Button>
+
+          {onIdentifyMovie && itemCount === 1 && (
+            <Button
+              variant="outline"
+              className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
+              onClick={onIdentifyMovie}
+            >
+              <span className="font-semibold text-sm sm:text-base">Identify as Movie with {moviesProviderName}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground text-left">
+                Search {moviesProviderName} to identify and rename as a movie
+              </span>
+            </Button>
+          )}
 
           {onBatchIdentify && itemCount > 1 && (
             <Button
@@ -79,7 +97,7 @@ export function TransferChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onBatchIdentify}
             >
-              <span className="font-semibold text-sm sm:text-base">Identify Movies Separately</span>
+              <span className="font-semibold text-sm sm:text-base">Identify Movies with {moviesProviderName}</span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
                 Search each file independently (for multiple movies)
               </span>
@@ -92,7 +110,7 @@ export function TransferChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onMultiSeriesTransfer}
             >
-              <span className="font-semibold text-sm sm:text-base">Multiple TV Series</span>
+              <span className="font-semibold text-sm sm:text-base">Multiple TV Series with {seriesProviderName}</span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
                 Episodes from different series
               </span>

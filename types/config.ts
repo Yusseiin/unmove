@@ -99,7 +99,11 @@ export interface AppConfig {
   codecValues?: string[];
   // Custom extra tag values to detect in filenames (e.g., ["10bit", "HDR", "ITA", "ENG"])
   extraTagValues?: string[];
-  // Metadata provider: "tvdb" (TheTVDB) or "tmdb" (TheMovieDB)
+  // Metadata provider for TV series: "tvdb" (TheTVDB) or "tmdb" (TheMovieDB)
+  seriesMetadataProvider?: MetadataProvider;
+  // Metadata provider for movies: "tvdb" (TheTVDB) or "tmdb" (TheMovieDB)
+  moviesMetadataProvider?: MetadataProvider;
+  // Legacy: single metadata provider (deprecated, use seriesMetadataProvider and moviesMetadataProvider)
   metadataProvider?: MetadataProvider;
 }
 
@@ -132,7 +136,8 @@ export const defaultConfig: AppConfig = {
   qualityValues: defaultQualityValues,
   codecValues: defaultCodecValues,
   extraTagValues: defaultExtraTagValues,
-  metadataProvider: "tvdb",
+  seriesMetadataProvider: "tvdb",
+  moviesMetadataProvider: "tmdb",
 };
 
 // Localized strings

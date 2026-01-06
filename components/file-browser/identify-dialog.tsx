@@ -97,6 +97,10 @@ interface IdentifyDialogProps {
   onConfirm: (newPath: string, hasErrors?: boolean) => void;
   isLoading?: boolean;
   language?: Language;
+  // Separate metadata providers for series and movies
+  seriesMetadataProvider?: MetadataProvider;
+  moviesMetadataProvider?: MetadataProvider;
+  // Legacy: single metadata provider (fallback)
   metadataProvider?: MetadataProvider;
   seriesBaseFolders?: BaseFolder[];
   moviesBaseFolders?: BaseFolder[];
@@ -107,6 +111,8 @@ interface IdentifyDialogProps {
   qualityValues?: string[];
   codecValues?: string[];
   extraTagValues?: string[];
+  // Default media type filter (series or movie) - when set, dialog opens with this type pre-selected
+  defaultMediaType?: "series" | "movie";
 }
 
 export function IdentifyDialog({
@@ -120,7 +126,9 @@ export function IdentifyDialog({
   onConfirm,
   isLoading: externalLoading,
   language = "en",
-  metadataProvider: defaultProvider = "tvdb",
+  seriesMetadataProvider,
+  moviesMetadataProvider,
+  metadataProvider,
   seriesBaseFolders = [],
   moviesBaseFolders = [],
   seriesNamingTemplate,
@@ -128,7 +136,14 @@ export function IdentifyDialog({
   qualityValues,
   codecValues,
   extraTagValues,
+  defaultMediaType,
 }: IdentifyDialogProps) {
+  // Determine default provider based on defaultMediaType
+  // If movie mode, use moviesMetadataProvider; if series mode, use seriesMetadataProvider
+  // Falls back to legacy metadataProvider, then to "tvdb"
+  const defaultProvider = defaultMediaType === "movie"
+    ? (moviesMetadataProvider ?? metadataProvider ?? "tmdb")
+    : (seriesMetadataProvider ?? metadataProvider ?? "tvdb");
   // Build parse options from config values
   const parseOptions = { qualityValues, codecValues, extraTagValues };
   const isMobile = useIsMobile();
@@ -194,17 +209,19 @@ export function IdentifyDialog({
   const [renameMainFolder, setRenameMainFolder] = useState(false);
 
   // Media type filter for search (series or movie)
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<"series" | "movie" | null>(null);
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<"series" | "movie" | null>(defaultMediaType ?? null);
 
   // Metadata provider (TVDB or TMDB)
   const [activeProvider, setActiveProvider] = useState<MetadataProvider>(defaultProvider);
 
-  // Sync activeProvider with defaultProvider when dialog opens or defaultProvider changes
+  // Sync activeProvider and mediaTypeFilter with defaults when dialog opens
   useEffect(() => {
     if (open) {
       setActiveProvider(defaultProvider);
+      // Also reset mediaTypeFilter to defaultMediaType when dialog opens
+      setMediaTypeFilter(defaultMediaType ?? null);
     }
-  }, [open, defaultProvider]);
+  }, [open, defaultProvider, defaultMediaType]);
 
   // Track if provider was manually changed (not from dialog open/default change)
   const [providerManuallyChanged, setProviderManuallyChanged] = useState(false);

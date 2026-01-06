@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { FileBrowser } from "@/components/file-browser/file-browser";
+import { ChangelogDialog } from "@/components/changelog-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import Image from "next/image";
-import { Settings } from "lucide-react";
+import { Settings, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
 
   return (
     <div className="h-dvh max-h-dvh flex flex-col overflow-hidden">
@@ -23,19 +25,31 @@ export default function Home() {
           />
           <h1 className="text-lg font-semibold">UnMove</h1>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSettingsOpen(true)}
-          title="Settings"
-          className="cursor-pointer"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setChangelogOpen(true)}
+            title="Changelog"
+            className="cursor-pointer"
+          >
+            <Info className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+            className="cursor-pointer"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
       <main className="flex-1 min-h-0 overflow-hidden">
         <FileBrowser settingsOpen={settingsOpen} onSettingsOpenChange={setSettingsOpen} />
       </main>
+      <ChangelogDialog open={changelogOpen} onOpenChange={setChangelogOpen} />
       <Toaster position="bottom-right" />
     </div>
   );

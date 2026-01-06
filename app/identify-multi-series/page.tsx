@@ -162,17 +162,18 @@ function IdentifyMultiSeriesContent() {
   // View mode: "carousel" or "summary"
   const [viewMode, setViewMode] = useState<"carousel" | "summary">("carousel");
 
-  // Metadata provider (TVDB or TMDB)
+  // Metadata provider (TVDB or TMDB) - use seriesMetadataProvider with fallback to legacy metadataProvider
   const [activeProvider, setActiveProvider] = useState<MetadataProvider>(
-    config?.metadataProvider || "tvdb"
+    config?.seriesMetadataProvider ?? config?.metadataProvider ?? "tvdb"
   );
 
   // Sync activeProvider when config loads
   useEffect(() => {
-    if (config?.metadataProvider) {
-      setActiveProvider(config.metadataProvider);
+    const provider = config?.seriesMetadataProvider ?? config?.metadataProvider;
+    if (provider) {
+      setActiveProvider(provider);
     }
-  }, [config?.metadataProvider]);
+  }, [config?.seriesMetadataProvider, config?.metadataProvider]);
 
   // Track if provider was manually changed (not from config load)
   const [providerManuallyChanged, setProviderManuallyChanged] = useState(false);

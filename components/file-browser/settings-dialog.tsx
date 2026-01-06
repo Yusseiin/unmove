@@ -40,9 +40,11 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   language: Language;
   onLanguageChange: (language: Language) => void;
-  // Metadata provider
-  metadataProvider?: MetadataProvider;
-  onMetadataProviderChange?: (provider: MetadataProvider) => void;
+  // Metadata providers (separate for series and movies)
+  seriesMetadataProvider?: MetadataProvider;
+  onSeriesMetadataProviderChange?: (provider: MetadataProvider) => void;
+  moviesMetadataProvider?: MetadataProvider;
+  onMoviesMetadataProviderChange?: (provider: MetadataProvider) => void;
   seriesBaseFolders: BaseFolder[];
   onSeriesBaseFoldersChange: (folders: BaseFolder[]) => void;
   moviesBaseFolders: BaseFolder[];
@@ -67,8 +69,10 @@ export function SettingsDialog({
   onOpenChange,
   language,
   onLanguageChange,
-  metadataProvider = "tvdb",
-  onMetadataProviderChange,
+  seriesMetadataProvider = "tvdb",
+  onSeriesMetadataProviderChange,
+  moviesMetadataProvider = "tmdb",
+  onMoviesMetadataProviderChange,
   seriesBaseFolders,
   onSeriesBaseFoldersChange,
   moviesBaseFolders,
@@ -285,37 +289,56 @@ export function SettingsDialog({
             </Select>
           </div>
 
-          {/* Metadata Provider setting */}
+          {/* Metadata Provider settings */}
           <div className="space-y-2">
-            <Label htmlFor="metadataProvider">
-              {language === "it" ? "Fonte metadati" : "Metadata Provider"}
+            <Label>
+              {language === "it" ? "Fonti metadati" : "Metadata Providers"}
             </Label>
-            <Select
-              value={metadataProvider}
-              onValueChange={(value) => onMetadataProviderChange?.(value as MetadataProvider)}
-              disabled={isLoading}
-            >
-              <SelectTrigger id="metadataProvider" className="w-full">
-                <SelectValue placeholder={language === "it" ? "Seleziona fonte..." : "Select provider..."} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tvdb">
-                  <span className="flex items-center gap-2">
-                    TVDB (TheTVDB)
-                  </span>
-                </SelectItem>
-                <SelectItem value="tmdb">
-                  <span className="flex items-center gap-2">
-                    TMDB (TheMovieDB)
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
             <p className="text-xs text-muted-foreground">
               {language === "it"
-                ? "Fonte predefinita per i metadati di serie e film"
-                : "Default source for series and movie metadata"}
+                ? "Seleziona la fonte predefinita per serie TV e film"
+                : "Select the default source for TV series and movies"}
             </p>
+
+            {/* Series provider */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm min-w-20">
+                {language === "it" ? "Serie TV:" : "TV Series:"}
+              </span>
+              <Select
+                value={seriesMetadataProvider}
+                onValueChange={(value) => onSeriesMetadataProviderChange?.(value as MetadataProvider)}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tvdb">TVDB (TheTVDB)</SelectItem>
+                  <SelectItem value="tmdb">TMDB (TheMovieDB)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Movies provider */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm min-w-20">
+                {language === "it" ? "Film:" : "Movies:"}
+              </span>
+              <Select
+                value={moviesMetadataProvider}
+                onValueChange={(value) => onMoviesMetadataProviderChange?.(value as MetadataProvider)}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tvdb">TVDB (TheTVDB)</SelectItem>
+                  <SelectItem value="tmdb">TMDB (TheMovieDB)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Global naming templates */}
@@ -677,11 +700,6 @@ export function SettingsDialog({
         <DialogFooter className="shrink-0 gap-2">
           <div className="flex w-full items-center">
             <div className="flex-1" />
-            {process.env.NEXT_PUBLIC_VERSION && (
-              <p className="text-xs text-muted-foreground flex-1 text-center">
-                v{process.env.NEXT_PUBLIC_VERSION}
-              </p>
-            )}
             <div className="flex-1 flex justify-end">
               <Button onClick={async () => {
                 onOpenChange(false);

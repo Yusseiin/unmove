@@ -15,9 +15,11 @@ interface RenameChoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemCount: number;
-  metadataProvider?: MetadataProvider;
+  seriesMetadataProvider?: MetadataProvider;
+  moviesMetadataProvider?: MetadataProvider;
   onNormalRename: () => void;
   onIdentifyRename: () => void;
+  onIdentifyMovieRename?: () => void; // For identifying a single file as a movie
   onBatchIdentifyRename?: () => void; // For identifying multiple movies separately
   onMultiSeriesRename?: () => void; // For identifying multiple different TV series
 }
@@ -26,13 +28,16 @@ export function RenameChoiceDialog({
   open,
   onOpenChange,
   itemCount,
-  metadataProvider = "tvdb",
+  seriesMetadataProvider = "tvdb",
+  moviesMetadataProvider = "tmdb",
   onNormalRename,
   onIdentifyRename,
+  onIdentifyMovieRename,
   onBatchIdentifyRename,
   onMultiSeriesRename,
 }: RenameChoiceDialogProps) {
-  const providerName = metadataProvider === "tmdb" ? "TMDB" : "TVDB";
+  const seriesProviderName = seriesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
+  const moviesProviderName = moviesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
   const itemText = itemCount === 1 ? "item" : "items";
 
   return (
@@ -65,12 +70,25 @@ export function RenameChoiceDialog({
             onClick={onIdentifyRename}
           >
             <span className="font-semibold text-sm sm:text-base">
-              {itemCount === 1 ? `Identify with ${providerName}` : "Identify TV Series"}
+              {itemCount === 1 ? `Identify as TV Series with ${seriesProviderName}` : `Identify TV Series with ${seriesProviderName}`}
             </span>
             <span className="text-xs sm:text-sm text-muted-foreground text-left">
               Rename as TV series episodes
             </span>
           </Button>
+
+          {onIdentifyMovieRename && itemCount === 1 && (
+            <Button
+              variant="outline"
+              className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
+              onClick={onIdentifyMovieRename}
+            >
+              <span className="font-semibold text-sm sm:text-base">Identify as Movie with {moviesProviderName}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground text-left">
+                Rename as a movie file
+              </span>
+            </Button>
+          )}
 
           {onBatchIdentifyRename && itemCount > 1 && (
             <Button
@@ -78,7 +96,7 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onBatchIdentifyRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Identify Movies Separately</span>
+              <span className="font-semibold text-sm sm:text-base">Identify Movies with {moviesProviderName}</span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
                 Search each file independently
               </span>
@@ -91,7 +109,7 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onMultiSeriesRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Multiple TV Series</span>
+              <span className="font-semibold text-sm sm:text-base">Multiple TV Series with {seriesProviderName}</span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
                 Episodes from different series
               </span>

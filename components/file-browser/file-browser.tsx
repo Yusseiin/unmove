@@ -62,6 +62,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
   const [identifyFilePath, setIdentifyFilePath] = useState("");
   const [identifyFilePaths, setIdentifyFilePaths] = useState<string[]>([]);
   const [identifyOperation, setIdentifyOperation] = useState<"copy" | "move" | "rename">("move");
+  const [identifyDefaultMediaType, setIdentifyDefaultMediaType] = useState<"series" | "movie" | undefined>(undefined);
 
   // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -153,10 +154,11 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
     }
   }, [isMobile]);
 
-  // Handle identify choice
+  // Handle identify choice (TV series)
   const handleIdentifyChoice = useCallback(() => {
     setTransferChoiceOpen(false);
     setIdentifyOperation(transferOperation);
+    setIdentifyDefaultMediaType(undefined); // Let user choose, defaults to series
     setIdentifyDialogOpen(true);
   }, [transferOperation]);
 
@@ -165,6 +167,14 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
     setTransferChoiceOpen(false);
     setIdentifyOperation(transferOperation);
     setBatchIdentifyDialogOpen(true);
+  }, [transferOperation]);
+
+  // Handle single movie identify choice (for transfer operations)
+  const handleIdentifyMovieChoice = useCallback(() => {
+    setTransferChoiceOpen(false);
+    setIdentifyOperation(transferOperation);
+    setIdentifyDefaultMediaType("movie"); // Pre-select movie mode
+    setIdentifyDialogOpen(true);
   }, [transferOperation]);
 
   // Handle multi-series transfer choice (multiple TV series at once) - navigates to dedicated page
@@ -212,10 +222,11 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
     setRenameDialogOpen(true);
   }, []);
 
-  // Handle TVDB rename choice (single item)
+  // Handle TVDB rename choice (single item - TV series)
   const handleTvdbRenameChoice = useCallback(() => {
     setRenameChoiceOpen(false);
     setIdentifyOperation("rename");
+    setIdentifyDefaultMediaType(undefined); // Let user choose, defaults to series
     setIdentifyDialogOpen(true);
   }, []);
 
@@ -224,6 +235,14 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
     setRenameChoiceOpen(false);
     setIdentifyOperation("rename");
     setBatchIdentifyDialogOpen(true);
+  }, []);
+
+  // Handle single movie rename choice
+  const handleMovieRenameChoice = useCallback(() => {
+    setRenameChoiceOpen(false);
+    setIdentifyOperation("rename");
+    setIdentifyDefaultMediaType("movie"); // Pre-select movie mode
+    setIdentifyDialogOpen(true);
   }, []);
 
   // Handle multi-series rename choice (multiple TV series at once) - navigates to dedicated page
@@ -599,9 +618,11 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onOpenChange={setTransferChoiceOpen}
         operation={transferOperation}
         itemCount={transferPaths.length}
-        metadataProvider={config.metadataProvider}
+        seriesMetadataProvider={config.seriesMetadataProvider ?? config.metadataProvider}
+        moviesMetadataProvider={config.moviesMetadataProvider ?? config.metadataProvider}
         onNormalTransfer={handleNormalTransfer}
         onIdentify={handleIdentifyChoice}
+        onIdentifyMovie={handleIdentifyMovieChoice}
         onBatchIdentify={handleBatchIdentifyChoice}
         onMultiSeriesTransfer={handleMultiSeriesTransferChoice}
       />
@@ -633,9 +654,11 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         open={renameChoiceOpen}
         onOpenChange={setRenameChoiceOpen}
         itemCount={renameChoicePaths.length}
-        metadataProvider={config.metadataProvider}
+        seriesMetadataProvider={config.seriesMetadataProvider ?? config.metadataProvider}
+        moviesMetadataProvider={config.moviesMetadataProvider ?? config.metadataProvider}
         onNormalRename={handleNormalRenameChoice}
         onIdentifyRename={handleTvdbRenameChoice}
+        onIdentifyMovieRename={handleMovieRenameChoice}
         onBatchIdentifyRename={handleBatchTvdbRenameChoice}
         onMultiSeriesRename={handleMultiSeriesRenameChoice}
       />
@@ -694,7 +717,8 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onConfirm={handleIdentifyConfirm}
         isLoading={isOperationLoading}
         language={config.language}
-        metadataProvider={config.metadataProvider}
+        seriesMetadataProvider={config.seriesMetadataProvider ?? config.metadataProvider}
+        moviesMetadataProvider={config.moviesMetadataProvider ?? config.metadataProvider}
         seriesBaseFolders={config.seriesBaseFolders}
         moviesBaseFolders={config.moviesBaseFolders}
         seriesNamingTemplate={config.seriesNamingTemplate}
@@ -702,6 +726,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         qualityValues={config.qualityValues}
         codecValues={config.codecValues}
         extraTagValues={config.extraTagValues}
+        defaultMediaType={identifyDefaultMediaType}
       />
 
       <BatchIdentifyDialog
@@ -713,7 +738,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onConfirm={handleBatchIdentifyConfirm}
         isLoading={isOperationLoading}
         language={config.language}
-        metadataProvider={config.metadataProvider}
+        metadataProvider={config.moviesMetadataProvider ?? config.metadataProvider}
         moviesBaseFolders={config.moviesBaseFolders}
         movieNamingTemplate={config.movieNamingTemplate}
         qualityValues={config.qualityValues}
@@ -726,8 +751,10 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onOpenChange={onSettingsOpenChange}
         language={config.language}
         onLanguageChange={setLanguage}
-        metadataProvider={config.metadataProvider}
-        onMetadataProviderChange={(provider) => updateConfig({ metadataProvider: provider })}
+        seriesMetadataProvider={config.seriesMetadataProvider ?? config.metadataProvider}
+        onSeriesMetadataProviderChange={(provider) => updateConfig({ seriesMetadataProvider: provider })}
+        moviesMetadataProvider={config.moviesMetadataProvider ?? config.metadataProvider}
+        onMoviesMetadataProviderChange={(provider) => updateConfig({ moviesMetadataProvider: provider })}
         seriesBaseFolders={config.seriesBaseFolders}
         onSeriesBaseFoldersChange={(folders) => updateConfig({ seriesBaseFolders: folders })}
         moviesBaseFolders={config.moviesBaseFolders}

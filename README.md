@@ -150,7 +150,8 @@ Settings are accessible via the gear icon in the top-right corner of the interfa
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **Language** | `en` | Interface language and folder naming. Options: `en` (English), `it` (Italian). Affects season folder names (e.g., "Season 01" vs "Stagione 01") |
-| **Metadata Provider** | `tvdb` | Default metadata provider for identifying files. Options: `tvdb` (TVDB), `tmdb` (TMDB). Can be switched per-search in the identify dialogs |
+| **Series Metadata Provider** | `tvdb` | Metadata provider for TV series. Options: `tvdb` (TVDB), `tmdb` (TMDB). Can be switched per-search in the identify dialogs |
+| **Movies Metadata Provider** | `tmdb` | Metadata provider for movies. Options: `tvdb` (TVDB), `tmdb` (TMDB). Can be switched per-search in the identify dialogs |
 | **Series Base Folders** | `[]` | List of base folders for TV series. Each folder has a `name` and `preserveQualityInfo` setting to keep quality/encoding info in filenames |
 | **Movies Base Folders** | `[]` | List of base folders for movies. Each folder has a `name` and `preserveQualityInfo` setting to keep quality/encoding info in filenames |
 | **Movie Folder Structure** | `name` | How movie files are organized. Options: `name` (Movie Name (Year)/Movie.mkv), `year` (Year/Movie.mkv), or `none` (Movie.mkv directly in base folder) |
@@ -160,7 +161,8 @@ Settings are accessible via the gear icon in the top-right corner of the interfa
 ```json
 {
   "language": "en",
-  "metadataProvider": "tmdb",
+  "seriesMetadataProvider": "tvdb",
+  "moviesMetadataProvider": "tmdb",
   "seriesBaseFolders": [
     { "name": "TV Series", "preserveQualityInfo": true },
     { "name": "Anime", "preserveQualityInfo": false }
