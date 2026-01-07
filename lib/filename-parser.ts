@@ -556,7 +556,22 @@ export function splitQualityInfo(
     }
   }
 
-  return { quality, codec, extraTags: extraTagParts.join(".") };
+  // Filter out tags that are substrings of other matched tags (priority system)
+  // e.g., if we have both "HDR10" and "HDR", keep only "HDR10"
+  // This handles cases like: HDR10+ > HDR10 > HDR, DTS-HD > DTS, etc.
+  const filteredExtraTags = extraTagParts.filter(tag => {
+    const tagLower = tag.toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Check if any other tag contains this tag as a substring (and is longer)
+    const isSubstringOfOther = extraTagParts.some(otherTag => {
+      if (otherTag === tag) return false;
+      const otherLower = otherTag.toLowerCase().replace(/[^a-z0-9]/g, "");
+      // Keep the tag only if no other tag contains it as a proper substring
+      return otherLower.includes(tagLower) && otherLower.length > tagLower.length;
+    });
+    return !isSubstringOfOther;
+  });
+
+  return { quality, codec, extraTags: filteredExtraTags.join(".") };
 }
 
 /**

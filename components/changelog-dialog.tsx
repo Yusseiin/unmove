@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 interface ChangelogEntry {
@@ -23,13 +22,20 @@ interface ChangelogEntry {
 const changelog: ChangelogEntry[] = [
   {
     version: process.env.NEXT_PUBLIC_VERSION || "",
+    date: "2025-01-07",
+    changes: [
+      { type: "fixed", description: "Fixed the extra tag priority" },
+    ],
+  },
+  {
+    version: "0.0.20",
     date: "2025-01-06",
     changes: [
-      { type: "added", description: "adde TMDB integration" },
+      { type: "added", description: "Add TMDB integration" },
       { type: "added", description: "Add possibility to choose what provider to use" },
       { type: "added", description: "Started Changelog tracking :)" },
     ],
-  },
+  }
 ];
 
 const typeColors: Record<string, string> = {
@@ -47,18 +53,18 @@ interface ChangelogDialogProps {
 export function ChangelogDialog({ open, onOpenChange }: ChangelogDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Changelog</DialogTitle>
           <DialogDescription>
             See what&apos;s new and improved in UnMove
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="overflow-y-auto flex-1 pr-2">
           <div className="space-y-6">
             {changelog.map((entry, index) => (
-              <div key={entry.version} className="space-y-3">
+              <div key={`${entry.version}-${index}`} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-base">
                     v{entry.version}
@@ -91,7 +97,7 @@ export function ChangelogDialog({ open, onOpenChange }: ChangelogDialogProps) {
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
