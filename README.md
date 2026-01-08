@@ -4,6 +4,8 @@ A self-hosted web application to organize your media library by identifying file
 
 ![License](https://img.shields.io/github/license/yusseiin/unmove)
 ![Docker Pulls](https://img.shields.io/docker/pulls/yusseiin/unmove)
+![Language](https://img.shields.io/github/languages/top/yusseiin/unmove)
+
 
 ## Features
 
