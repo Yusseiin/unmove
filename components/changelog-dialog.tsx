@@ -22,7 +22,15 @@ interface ChangelogEntry {
 const changelog: ChangelogEntry[] = [
   {
     version: process.env.NEXT_PUBLIC_VERSION || "",
-    date: "2025-01-08",
+    date: "2025-01-10",
+    changes: [
+      { type: "added", description: "German language support" },
+      { type: "added", description: "TVDB Episode ordering (Absolute, DVD, Aired)" },
+    ],
+  },
+  {
+     version: "0.0.22",
+    date: "2025-01-07",
     changes: [
       { type: "fixed", description: "Changing destination folder no longer resets manual episode/season assignments" },
     ],

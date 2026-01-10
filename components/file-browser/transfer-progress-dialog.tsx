@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getTranslations, interpolate } from "@/lib/translations";
+import type { Language } from "@/types/config";
 
 // Helper function to format bytes as human-readable string
 function formatBytes(bytes: number): string {
@@ -29,6 +31,7 @@ interface TransferProgressDialogProps {
   files: { sourcePath: string; destinationPath: string }[];
   overwrite?: boolean;
   onComplete: (success: boolean, message: string) => void;
+  language?: Language;
 }
 
 interface ProgressState {
@@ -50,7 +53,9 @@ export function TransferProgressDialog({
   files,
   overwrite = false,
   onComplete,
+  language = "en",
 }: TransferProgressDialogProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const isMobile = useIsMobile();
   const [progress, setProgress] = useState<ProgressState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -71,7 +76,7 @@ export function TransferProgressDialog({
       });
 
       if (!response.ok || !response.body) {
-        throw new Error("Failed to start transfer");
+        throw new Error(t.transferProgress.failedToStart);
       }
 
       const reader = response.body.getReader();
@@ -106,15 +111,15 @@ export function TransferProgressDialog({
               } else if (data.type === "complete") {
                 setIsComplete(true);
                 if (data.completed > 0) {
-                  onComplete(true, data.message || "Transfer completed");
+                  onComplete(true, data.message || t.transferProgress.transferComplete);
                 } else {
-                  setError(data.errors?.join(", ") || "All files failed");
-                  onComplete(false, data.errors?.join(", ") || "All files failed");
+                  setError(data.errors?.join(", ") || t.transferProgress.allFilesFailed);
+                  onComplete(false, data.errors?.join(", ") || t.transferProgress.allFilesFailed);
                 }
               } else if (data.type === "error") {
-                setError(data.message || "Transfer failed");
+                setError(data.message || t.transferProgress.transferFailed);
                 setIsComplete(true);
-                onComplete(false, data.message || "Transfer failed");
+                onComplete(false, data.message || t.transferProgress.transferFailed);
               }
             } catch {
               // Ignore parse errors
@@ -123,11 +128,11 @@ export function TransferProgressDialog({
         }
       }
     } catch {
-      setError("Failed to transfer files");
+      setError(t.transferProgress.failedToTransfer);
       setIsComplete(true);
-      onComplete(false, "Failed to transfer files");
+      onComplete(false, t.transferProgress.failedToTransfer);
     }
-  }, [files, operation, overwrite, onComplete]);
+  }, [files, operation, overwrite, onComplete, t]);
 
   // Start transfer when dialog opens
   useEffect(() => {
@@ -169,9 +174,11 @@ export function TransferProgressDialog({
               <span className="text-sm font-medium">
                 {isComplete
                   ? error
-                    ? "Transfer failed"
-                    : "Transfer complete!"
-                  : `${operation === "copy" ? "Copying" : "Moving"}...`}
+                    ? t.transferProgress.transferFailed
+                    : t.transferProgress.transferCompleteExcl
+                  : operation === "copy"
+                    ? t.transferProgress.copyingEllipsis
+                    : t.transferProgress.movingEllipsis}
               </span>
             </div>
             {isComplete && (
@@ -237,14 +244,16 @@ export function TransferProgressDialog({
       <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => !isComplete && e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
-            {operation === "copy" ? "Copying" : "Moving"} Files
+            {operation === "copy" ? t.transferProgress.copyingFiles : t.transferProgress.movingFiles}
           </DialogTitle>
           <DialogDescription>
             {isComplete
               ? error
-                ? "Transfer failed"
-                : "Transfer complete"
-              : `${operation === "copy" ? "Copying" : "Moving"} ${files.length} file${files.length !== 1 ? "s" : ""}...`}
+                ? t.transferProgress.transferFailed
+                : t.transferProgress.transferComplete
+              : operation === "copy"
+                ? interpolate(t.transferProgress.copyingCount, { count: files.length })
+                : interpolate(t.transferProgress.movingCount, { count: files.length })}
           </DialogDescription>
         </DialogHeader>
 
@@ -262,7 +271,9 @@ export function TransferProgressDialog({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {operation === "copy" ? "Copying" : "Moving"} files...
+                    {operation === "copy"
+                      ? t.transferProgress.copyingEllipsis
+                      : t.transferProgress.movingEllipsis}
                   </span>
                   <span className="font-medium">
                     {progress.current} / {progress.total}
@@ -302,7 +313,7 @@ export function TransferProgressDialog({
               {/* Failed count */}
               {progress.failed > 0 && (
                 <p className="text-xs text-destructive">
-                  {progress.failed} failed
+                  {progress.failed} {t.common.failed}
                 </p>
               )}
             </div>
@@ -311,7 +322,7 @@ export function TransferProgressDialog({
           {isComplete && !error && (
             <div className="flex justify-end">
               <Button onClick={() => onOpenChange(false)}>
-                Done
+                {t.transferProgress.done}
               </Button>
             </div>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { showErrorToast } from "@/components/ui/toast";
 import {
   Dialog,
@@ -46,6 +46,7 @@ import {
   findAutoMatch,
   getDisplayName,
 } from "@/lib/matching-utils";
+import { getTranslations, interpolate } from "@/lib/translations";
 import type {
   TVDBSearchResult,
   ParsedFileName,
@@ -129,6 +130,8 @@ export function BatchIdentifyDialog({
   // Build parse options from config values
   const parseOptions = { qualityValues, codecValues, extraTagValues };
   const isMobile = useIsMobile();
+  // Get translations
+  const t = useMemo(() => getTranslations(language), [language]);
 
   // Scanning state
   const [isScanning, setIsScanning] = useState(false);
@@ -700,20 +703,14 @@ export function BatchIdentifyDialog({
       <DialogContent className="w-[95vw] sm:w-[50vw] sm:min-w-250 max-h-[90dvh] flex flex-col p-3 sm:p-6">
         <DialogHeader className="shrink-0">
           <DialogTitle className="text-base sm:text-lg">
-            {language === "it" ? "Identifica Multi Film" : "Identify Movies Separately"}
+            {t.batchIdentify.title}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {isScanning
-              ? language === "it"
-                ? "Scansione file..."
-                : "Scanning files..."
+              ? t.batchIdentify.scanningFiles
               : fileIdentifications.length > 0
-              ? language === "it"
-                ? `${fileIdentifications.length} file da identificare`
-                : `${fileIdentifications.length} file${fileIdentifications.length !== 1 ? "s" : ""} to identify`
-              : language === "it"
-              ? `Cerca su ${activeProvider.toUpperCase()} per identificare e rinominare i film`
-              : `Search ${activeProvider.toUpperCase()} to identify and rename movies`}
+              ? interpolate(t.batchIdentify.filesToIdentify, { count: fileIdentifications.length })
+              : interpolate(t.batchIdentify.searchProvider, { provider: activeProvider.toUpperCase() })}
           </DialogDescription>
         </DialogHeader>
 
@@ -724,7 +721,7 @@ export function BatchIdentifyDialog({
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-muted-foreground">
-                  {operation === "copy" ? (language === "it" ? "Copiando" : "Copying") : (language === "it" ? "Spostando" : "Moving")}...
+                  {operation === "copy" ? t.batchIdentify.copyingFiles : t.batchIdentify.movingFiles}
                 </span>
               </div>
               <span className="font-medium">
@@ -752,7 +749,7 @@ export function BatchIdentifyDialog({
             )}
             {progress.failed > 0 && (
               <p className="text-xs text-destructive">
-                {progress.failed} {language === "it" ? "falliti" : "failed"}
+                {progress.failed} {t.common.failed}
               </p>
             )}
           </div>
@@ -780,7 +777,7 @@ export function BatchIdentifyDialog({
           {!isScanning && fileIdentifications.length > 0 && (
             <div className="flex items-center justify-between shrink-0">
               <label className="text-xs sm:text-sm font-medium">
-                {language === "it" ? "Fonte metadati" : "Metadata Provider"}
+                {t.batchIdentify.metadataProvider}
               </label>
               <div className="flex rounded-md border overflow-hidden">
                 <button
@@ -823,7 +820,7 @@ export function BatchIdentifyDialog({
           {!isScanning && fileIdentifications.length > 0 && operation !== "rename" && (
             <div className="space-y-1 shrink-0">
               <label className="text-xs sm:text-sm font-medium">
-                {language === "it" ? "Cartella di destinazione" : "Destination Folder"}
+                {t.batchIdentify.destinationFolder}
               </label>
               <Select
                 value={selectedBaseFolder}
@@ -833,14 +830,12 @@ export function BatchIdentifyDialog({
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
-                    placeholder={
-                      language === "it" ? "Seleziona cartella..." : "Select folder..."
-                    }
+                    placeholder={t.batchIdentify.selectFolder}
                   />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">
-                    {language === "it" ? "(Radice Media)" : "(Media Root)"}
+                    {t.batchIdentify.mediaRoot}
                   </SelectItem>
                   {moviesBaseFolders.map((folder) => (
                     <SelectItem key={folder.name} value={folder.name}>
@@ -864,7 +859,7 @@ export function BatchIdentifyDialog({
                 htmlFor="use-ffprobe-batch"
                 className="text-sm cursor-pointer select-none"
               >
-                {language === "it" ? "Usa FFprobe per qualità/codec" : "Use FFprobe for quality/codec"}
+                {t.batchIdentify.useFFprobeForQuality}
               </label>
             </div>
           )}
@@ -874,7 +869,7 @@ export function BatchIdentifyDialog({
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="flex items-center justify-between mb-1 sm:mb-2 shrink-0">
                 <label className="text-xs sm:text-sm font-medium">
-                  {language === "it" ? "Film" : "Movies"} ({fileIdentifications.length})
+                  {t.batchIdentify.moviesList} ({fileIdentifications.length})
                 </label>
                 <div className="text-[10px] sm:text-xs text-muted-foreground space-x-1 sm:space-x-2">
                   {identifiedCount > 0 && (
@@ -983,7 +978,7 @@ export function BatchIdentifyDialog({
                           )}
                           {fi.existsAtDestination && !fi.overwrite && !fi.skipped && (
                             <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400">
-                              {language === "it" ? "File già esistente" : "File already exists"}
+                              {t.batchIdentify.fileAlreadyExists}
                             </p>
                           )}
                         </div>
@@ -996,7 +991,7 @@ export function BatchIdentifyDialog({
                           className="shrink-0 h-7 w-7 sm:h-8 sm:w-auto sm:px-2 p-0"
                         >
                           {fi.skipped ? (
-                            <span className="hidden sm:inline">{language === "it" ? "Ripristina" : "Unskip"}</span>
+                            <span className="hidden sm:inline">{t.common.unskip}</span>
                           ) : null}
                           {fi.skipped ? (
                             <span className="sm:hidden text-xs">↩</span>
@@ -1014,11 +1009,7 @@ export function BatchIdentifyDialog({
                             <Input
                               value={fi.searchQuery}
                               onChange={(e) => updateSearchQuery(index, e.target.value)}
-                              placeholder={
-                                language === "it"
-                                  ? "Cerca film..."
-                                  : "Search movie..."
-                              }
+                              placeholder={t.batchIdentify.searchMovie}
                               className="flex-1 h-8 sm:h-9 text-xs sm:text-sm"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -1045,7 +1036,7 @@ export function BatchIdentifyDialog({
                                   )
                                 );
                               }}
-                              placeholder={language === "it" ? "Anno" : "Year"}
+                              placeholder={t.common.year}
                               className="w-16 sm:w-20 h-8 sm:h-9 text-xs sm:text-sm"
                               maxLength={4}
                               onKeyDown={(e) => {
@@ -1077,7 +1068,7 @@ export function BatchIdentifyDialog({
                           {fi.isSearching && fi.searchResults.length === 0 && (
                             <div className="p-3 flex items-center justify-center gap-2 text-muted-foreground border rounded-md">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              <span className="text-xs">{language === "it" ? "Ricerca in corso..." : "Searching..."}</span>
+                              <span className="text-xs">{t.batchIdentify.searching}</span>
                             </div>
                           )}
 
@@ -1139,9 +1130,7 @@ export function BatchIdentifyDialog({
                             !fi.isSearching &&
                             fi.searchQuery && (
                               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                                {language === "it"
-                                  ? "Nessun risultato trovato"
-                                  : "No results found"}
+                                {t.batchIdentify.noResultsFound}
                               </p>
                             )}
 
@@ -1160,9 +1149,7 @@ export function BatchIdentifyDialog({
                                 htmlFor={`overwrite-${index}`}
                                 className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 cursor-pointer"
                               >
-                                {language === "it"
-                                  ? "Sovrascrivi file esistente"
-                                  : "Overwrite existing file"}
+                                {t.batchIdentify.overwriteExisting}
                               </label>
                             </div>
                           )}
@@ -1205,12 +1192,8 @@ export function BatchIdentifyDialog({
               <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">
                   {operation === "copy"
-                    ? language === "it"
-                      ? "Copiando file..."
-                      : "Copying files..."
-                    : language === "it"
-                    ? "Spostando file..."
-                    : "Moving files..."}
+                    ? t.batchIdentify.copyingFiles
+                    : t.batchIdentify.movingFiles}
                 </span>
                 <span className="font-medium">
                   {progress.current} / {progress.total}
@@ -1244,7 +1227,7 @@ export function BatchIdentifyDialog({
               )}
               {progress.failed > 0 && (
                 <p className="text-[10px] sm:text-xs text-destructive">
-                  {progress.failed} {language === "it" ? "falliti" : "failed"}
+                  {progress.failed} {t.common.failed}
                 </p>
               )}
             </div>
@@ -1258,7 +1241,7 @@ export function BatchIdentifyDialog({
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
-            {language === "it" ? "Annulla" : "Cancel"}
+            {t.common.cancel}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -1267,17 +1250,11 @@ export function BatchIdentifyDialog({
           >
             {isLoading
               ? operation === "copy"
-                ? language === "it"
-                  ? "Copia..."
-                  : "Copying..."
+                ? t.batchIdentify.copyingFiles
                 : operation === "move"
-                ? language === "it"
-                  ? "Sposta..."
-                  : "Moving..."
-                : language === "it"
-                  ? "Rinomina..."
-                  : "Renaming..."
-              : `${operation === "copy" ? (language === "it" ? "Copia" : "Copy") : operation === "move" ? (language === "it" ? "Sposta" : "Move") : (language === "it" ? "Rinomina" : "Rename")} ${processableCount} file${processableCount !== 1 ? "s" : ""}${existingNotConfirmedCount > 0 ? ` (${existingNotConfirmedCount} ${language === "it" ? "saltati" : "skip"})` : ""}`}
+                ? t.batchIdentify.movingFiles
+                : t.common.renaming
+              : `${operation === "copy" ? t.common.copy : operation === "move" ? t.common.move : t.common.rename} ${processableCount} ${t.common.files}${existingNotConfirmedCount > 0 ? ` (${existingNotConfirmedCount} ${t.common.skipped})` : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>

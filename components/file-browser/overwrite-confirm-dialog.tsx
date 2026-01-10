@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { getTranslations, interpolate } from "@/lib/translations";
+import type { Language } from "@/types/config";
 
 interface OverwriteConfirmDialogProps {
   open: boolean;
@@ -19,6 +22,7 @@ interface OverwriteConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  language?: Language;
 }
 
 export function OverwriteConfirmDialog({
@@ -29,19 +33,23 @@ export function OverwriteConfirmDialog({
   onConfirm,
   onCancel,
   isLoading,
+  language = "en",
 }: OverwriteConfirmDialogProps) {
-  const operationLabel = operation === "copy" ? "Copy" : "Move";
+  const t = useMemo(() => getTranslations(language), [language]);
+  const operationLabel = operation === "copy" ? t.common.copy : t.common.move;
+  const operationLabelIng = operation === "copy" ? t.common.copying : t.common.moving;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Overwrite existing files?</AlertDialogTitle>
+          <AlertDialogTitle>{t.overwriteConfirm.title}</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2">
               <p>
-                The following {conflicts.length === 1 ? "file" : "files"} already{" "}
-                {conflicts.length === 1 ? "exists" : "exist"} at the destination:
+                {conflicts.length === 1
+                  ? t.overwriteConfirm.fileExists
+                  : t.overwriteConfirm.filesExist}
               </p>
               <ul className="font-mono text-sm bg-muted px-3 py-2 rounded max-h-32 overflow-y-auto space-y-1">
                 {conflicts.map((file) => (
@@ -51,21 +59,25 @@ export function OverwriteConfirmDialog({
                 ))}
               </ul>
               <p>
-                Do you want to overwrite {conflicts.length === 1 ? "it" : "them"}?
+                {conflicts.length === 1
+                  ? t.overwriteConfirm.doYouWantOverwrite
+                  : t.overwriteConfirm.doYouWantOverwritePlural}
               </p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading} onClick={onCancel}>
-            Cancel
+            {t.common.cancel}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isLoading ? `${operationLabel}ing...` : `Overwrite & ${operationLabel}`}
+            {isLoading
+              ? `${operationLabelIng}...`
+              : interpolate(t.overwriteConfirm.overwriteAnd, { operation: operationLabel })}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

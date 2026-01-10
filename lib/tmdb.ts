@@ -112,7 +112,8 @@ export async function searchTMDB(
   lang?: string,
   year?: string
 ): Promise<TVDBSearchResult[]> {
-  const langParam = lang === "it" ? "it-IT" : "en-US";
+  const langMap: Record<string, string> = { en: "en-US", it: "it-IT", de: "de-DE" };
+  const langParam = langMap[lang || "en"] || "en-US";
 
   const results: TMDBSearchResult[] = [];
 
@@ -200,7 +201,8 @@ export async function getTMDBSeriesEpisodes(
       ? seriesId.replace(/^tmdb-/, "")
       : seriesId.toString();
 
-  const langParam = lang === "it" ? "it-IT" : "en-US";
+  const langMap: Record<string, string> = { en: "en-US", it: "it-IT", de: "de-DE" };
+  const langParam = langMap[lang || "en"] || "en-US";
   const allEpisodes: TVDBEpisode[] = [];
 
   if (season !== undefined) {
@@ -270,9 +272,10 @@ function mapTMDBEpisodes(
     image: ep.still_path ? `${TMDB_IMAGE_BASE}${ep.still_path}` : undefined,
     overview: ep.overview,
     // TMDB returns localized names based on language param
-    // Set nameItalian if we requested Italian
+    // Set nameItalian/nameGerman based on requested language
     nameItalian: lang === "it" ? ep.name : undefined,
-    nameEnglish: lang !== "it" ? ep.name : undefined,
+    nameGerman: lang === "de" ? ep.name : undefined,
+    nameEnglish: lang === "en" || (!lang) ? ep.name : undefined,
   }));
 }
 

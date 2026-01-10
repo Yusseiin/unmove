@@ -134,9 +134,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Validate language
-    if (newConfig.language !== "en" && newConfig.language !== "it") {
+    if (newConfig.language !== "en" && newConfig.language !== "it" && newConfig.language !== "de") {
       return NextResponse.json(
-        { success: false, error: "Invalid language. Must be 'en' or 'it'" },
+        { success: false, error: "Invalid language. Must be 'en', 'it', or 'de'" },
         { status: 400 }
       );
     }

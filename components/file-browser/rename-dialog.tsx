@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getTranslations, interpolate } from "@/lib/translations";
+import type { Language } from "@/types/config";
+import type { Translations } from "@/lib/translations";
 
 interface RenameDialogProps {
   open: boolean;
@@ -19,17 +22,18 @@ interface RenameDialogProps {
   currentName: string;
   onSubmit: (newName: string) => void;
   isLoading?: boolean;
+  language?: Language;
 }
 
 // Validate file/folder name client-side for immediate feedback
-function validateFileName(name: string): { valid: boolean; error?: string } {
+function validateFileName(name: string, t: Translations): { valid: boolean; error?: string } {
   if (!name || typeof name !== "string") {
-    return { valid: false, error: "Name is required" };
+    return { valid: false, error: t.rename.validation.nameRequired };
   }
 
   const trimmedName = name.trim();
   if (trimmedName.length === 0) {
-    return { valid: false, error: "Name cannot be empty" };
+    return { valid: false, error: t.rename.validation.nameEmpty };
   }
 
   // Check for illegal characters
@@ -37,7 +41,7 @@ function validateFileName(name: string): { valid: boolean; error?: string } {
   if (illegalChars.test(trimmedName)) {
     return {
       valid: false,
-      error: "Name contains illegal characters: < > : \" / \\ | ? *",
+      error: t.rename.validation.illegalChars,
     };
   }
 
@@ -46,23 +50,23 @@ function validateFileName(name: string): { valid: boolean; error?: string } {
   if (reservedNames.test(trimmedName)) {
     return {
       valid: false,
-      error: "This name is reserved by the system",
+      error: t.rename.validation.reservedName,
     };
   }
 
   // Check if name is just a dot
   if (trimmedName === ".") {
-    return { valid: false, error: "Name cannot be just a dot" };
+    return { valid: false, error: t.rename.validation.nameDot };
   }
 
   // Check if name ends with space or dot
   if (trimmedName.endsWith(" ") || trimmedName.endsWith(".")) {
-    return { valid: false, error: "Name cannot end with a space or dot" };
+    return { valid: false, error: t.rename.validation.nameEndsDotSpace };
   }
 
   // Check length
   if (trimmedName.length > 255) {
-    return { valid: false, error: "Name is too long (max 255 characters)" };
+    return { valid: false, error: t.rename.validation.nameTooLong };
   }
 
   return { valid: true };
@@ -74,7 +78,9 @@ export function RenameDialog({
   currentName,
   onSubmit,
   isLoading,
+  language = "en",
 }: RenameDialogProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const [name, setName] = useState(currentName);
   const [error, setError] = useState("");
 
@@ -86,65 +92,65 @@ export function RenameDialog({
     }
   }, [open, currentName]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmedName = name.trim();
 
     // Check if name changed
     if (trimmedName === currentName) {
-      setError("Name is the same as before");
+      setError(t.rename.validation.nameSame);
       return;
     }
 
     // Validate the name
-    const validation = validateFileName(trimmedName);
+    const validation = validateFileName(trimmedName, t);
     if (!validation.valid) {
-      setError(validation.error || "Invalid name");
+      setError(validation.error || t.rename.validation.invalidName);
       return;
     }
 
     onSubmit(trimmedName);
-  };
+  }, [name, currentName, t, onSubmit]);
 
-  const handleOpenChange = (newOpen: boolean) => {
+  const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
       setName(currentName);
       setError("");
     }
     onOpenChange(newOpen);
-  };
+  }, [currentName, onOpenChange]);
 
-  const handleNameChange = (value: string) => {
+  const handleNameChange = useCallback((value: string) => {
     setName(value);
     // Clear error on change, but show validation errors in real-time for illegal chars
-    const validation = validateFileName(value);
+    const validation = validateFileName(value, t);
     if (!validation.valid && value.trim().length > 0) {
       setError(validation.error || "");
     } else {
       setError("");
     }
-  };
+  }, [t]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Rename</DialogTitle>
+            <DialogTitle>{t.rename.title}</DialogTitle>
             <DialogDescription>
-              Enter a new name for &quot;{currentName}&quot;
+              {interpolate(t.rename.description, { name: currentName })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="new-name" className="sr-only">
-              New name
+              {t.rename.newName}
             </Label>
             <Input
               id="new-name"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Enter new name"
+              placeholder={t.rename.placeholder}
               autoFocus
               disabled={isLoading}
               onFocus={(e) => {
@@ -166,10 +172,10 @@ export function RenameDialog({
               onClick={() => handleOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button type="submit" disabled={isLoading || !!error}>
-              {isLoading ? "Renaming..." : "Rename"}
+              {isLoading ? t.common.renaming : t.common.rename}
             </Button>
           </DialogFooter>
         </form>

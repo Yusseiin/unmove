@@ -1,11 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import { useFileBrowser } from "@/hooks/use-file-browser";
 import { FileToolbar } from "./file-toolbar";
 import { FileBreadcrumb } from "./file-breadcrumb";
 import { FileList } from "./file-list";
 import { cn } from "@/lib/utils";
+import { getTranslations } from "@/lib/translations";
 import type { PaneType } from "@/types/files";
+import type { Language } from "@/types/config";
 
 interface FilePaneProps {
   pane: PaneType;
@@ -14,6 +17,7 @@ interface FilePaneProps {
   onMove?: (selectedPaths: string[], currentPath: string) => void;
   onDelete?: (pane: PaneType, selectedPaths: string[]) => void;
   onCreateFolder?: (currentPath: string) => void;
+  language?: Language;
 }
 
 export function FilePane({
@@ -23,7 +27,9 @@ export function FilePane({
   onMove,
   onDelete,
   onCreateFolder,
+  language = "en",
 }: FilePaneProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const {
     currentPath,
     entries,
@@ -80,11 +86,12 @@ export function FilePane({
         onDelete={handleDelete}
         onCreateFolder={pane === "media" ? handleCreateFolder : undefined}
         onRefresh={refresh}
+        language={language}
       />
       <div className="px-3 py-2 border-b bg-muted/30">
         <FileBreadcrumb
           path={currentPath}
-          rootLabel={pane === "downloads" ? "Downloads" : "Media"}
+          rootLabel={pane === "downloads" ? t.fileBrowser.downloads : t.fileBrowser.media}
           onNavigate={navigate}
         />
       </div>

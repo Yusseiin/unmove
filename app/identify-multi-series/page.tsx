@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { showErrorToast, showSuccessToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -53,13 +53,13 @@ import type {
   TVDBApiResponse,
 } from "@/types/tvdb";
 import type {
-  Language,
   MetadataProvider,
   BaseFolder,
   SeriesNamingTemplate,
   AppConfig,
+  EpisodeOrder,
 } from "@/types/config";
-import { getLocalizedStrings } from "@/types/config";
+import { getTranslations } from "@/lib/translations";
 
 // Normalize series name for grouping (lowercase, remove special chars)
 function normalizeSeriesName(name: string): string {
@@ -123,7 +123,7 @@ function IdentifyMultiSeriesContent() {
   const [filePaths, setFilePaths] = useState<string[]>([]);
 
   const language = config?.language || "en";
-  const strings = getLocalizedStrings(language);
+  const t = useMemo(() => getTranslations(language), [language]);
   const seriesBaseFolders = config?.seriesBaseFolders || [];
   const seriesNamingTemplate = config?.seriesNamingTemplate;
   // Build parse options from config values
@@ -192,6 +192,20 @@ function IdentifyMultiSeriesContent() {
 
   // FFprobe checkbox state for rename operations
   const [useFFprobe, setUseFFprobe] = useState(true);
+
+  // Episode order for TVDB (Aired, DVD, Absolute)
+  const [episodeOrder, setEpisodeOrder] = useState<EpisodeOrder>("default");
+
+  // Re-fetch episodes when episode order changes (for TVDB)
+  useEffect(() => {
+    if (activeProvider === "tvdb" && seriesGroups.length > 0) {
+      seriesGroups.forEach((group, index) => {
+        if (group.selectedResult) {
+          fetchEpisodes(index, group.selectedResult);
+        }
+      });
+    }
+  }, [episodeOrder]);
 
   // Track which file is being edited (groupIndex-fileIndex or null)
   const [editingFile, setEditingFile] = useState<string | null>(null);
@@ -278,6 +292,9 @@ function IdentifyMultiSeriesContent() {
   const getEpisodeDisplayName = useCallback((episode: TVDBEpisode): string => {
     if (language === "it") {
       return episode.nameItalian || episode.nameEnglish || episode.name;
+    }
+    if (language === "de") {
+      return episode.nameGerman || episode.nameEnglish || episode.name;
     }
     return episode.nameEnglish || episode.name;
   }, [language]);
@@ -464,10 +481,12 @@ function IdentifyMultiSeriesContent() {
     );
 
     try {
-      const langParam = language === "it" ? "&lang=it" : "";
+      const langParam = language === "it" ? "&lang=it" : language === "de" ? "&lang=de" : "";
       // Use the active provider's episodes endpoint
       const episodesEndpoint = activeProvider === "tmdb" ? "/api/tmdb/episodes" : "/api/tvdb/episodes";
-      const response = await fetch(`${episodesEndpoint}?seriesId=${series.id}${langParam}`);
+      // Add episode order for TVDB
+      const orderParam = activeProvider === "tvdb" ? `&order=${episodeOrder}` : "";
+      const response = await fetch(`${episodesEndpoint}?seriesId=${series.id}${langParam}${orderParam}`);
       const data: TVDBApiResponse<TVDBEpisode[]> = await response.json();
 
       if (data.success && data.data) {
@@ -1080,10 +1099,10 @@ function IdentifyMultiSeriesContent() {
     return (
       <div className="h-dvh flex flex-col items-center justify-center gap-4">
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">No files selected</p>
+        <p className="text-muted-foreground">{t.multiSeries.noFilesSelected}</p>
         <Button onClick={handleBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Go back
+          {t.multiSeries.goBack}
         </Button>
       </div>
     );
@@ -1101,14 +1120,14 @@ function IdentifyMultiSeriesContent() {
             <div className="flex-1 min-w-0">
               <h1 className="text-sm lg:text-xl font-semibold truncate">
                 {filePaths.length === 1
-                  ? (language === "it" ? "Identifica con TVDB" : "Identify with TVDB")
-                  : (language === "it" ? "Serie Multiple" : "Multiple Series")}
+                  ? t.multiSeries.identifyWithProvider.replace("{provider}", "TVDB")
+                  : t.multiSeries.title}
               </h1>
               <p className="text-xs lg:text-sm text-muted-foreground truncate">
                 {isScanning
-                  ? language === "it" ? "Scansione..." : "Scanning..."
+                  ? t.multiSeries.scanning
                   : viewMode === "summary"
-                  ? language === "it" ? "Riepilogo" : "Summary"
+                  ? t.multiSeries.summary
                   : seriesGroups.length > 0
                   ? seriesGroups.length === 1
                     ? ""
@@ -1121,17 +1140,17 @@ function IdentifyMultiSeriesContent() {
               <div className="flex gap-4 text-sm shrink-0">
                 {acceptedCount > 0 && (
                   <span className="text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-500/10 px-3 py-1 rounded-full">
-                    <Check className="h-4 w-4" /> {acceptedCount} {language === "it" ? "accettate" : "accepted"}
+                    <Check className="h-4 w-4" /> {acceptedCount} {t.multiSeries.accepted}
                   </span>
                 )}
                 {skippedCount > 0 && (
                   <span className="text-muted-foreground flex items-center gap-1.5 bg-muted px-3 py-1 rounded-full">
-                    <X className="h-4 w-4" /> {skippedCount} {language === "it" ? "saltate" : "skipped"}
+                    <X className="h-4 w-4" /> {skippedCount} {t.multiSeries.skipped}
                   </span>
                 )}
                 {pendingCount > 0 && (
                   <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-3 py-1 rounded-full">
-                    {pendingCount} {language === "it" ? "in attesa" : "pending"}
+                    {pendingCount} {t.multiSeries.pending}
                   </span>
                 )}
               </div>
@@ -1147,7 +1166,7 @@ function IdentifyMultiSeriesContent() {
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <span className="text-muted-foreground">
-                    {operation === "copy" ? "Copying" : operation === "move" ? "Moving" : "Renaming"}...
+                    {operation === "copy" ? t.common.copying : operation === "move" ? t.common.moving : t.common.renaming}...
                   </span>
                 </div>
                 <span className="font-medium">{progress.current} / {progress.total}</span>
@@ -1164,7 +1183,7 @@ function IdentifyMultiSeriesContent() {
             <div className="flex-1 flex items-center justify-center">
               <div className="space-y-4 text-center">
                 <Loader2 className="h-10 w-10 animate-spin mx-auto text-muted-foreground" />
-                <p className="text-lg text-muted-foreground">{language === "it" ? "Scansione file..." : "Scanning files..."}</p>
+                <p className="text-lg text-muted-foreground">{t.multiSeries.scanningFiles}</p>
               </div>
             </div>
           )}
@@ -1204,7 +1223,7 @@ function IdentifyMultiSeriesContent() {
                     <TooltipContent side="bottom">
                       <p className="font-medium">{g.displayName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {g.files.length} file{g.files.length !== 1 ? "s" : ""} · {g.status === "accepted" ? (language === "it" ? "Accettata" : "Accepted") : g.status === "skipped" ? (language === "it" ? "Saltata" : "Skipped") : (language === "it" ? "In attesa" : "Pending")}
+                        {g.files.length} {g.files.length !== 1 ? t.common.files : t.common.file} · {g.status === "accepted" ? t.multiSeries.accepted : g.status === "skipped" ? t.multiSeries.skipped : t.multiSeries.pending}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -1251,7 +1270,7 @@ function IdentifyMultiSeriesContent() {
                       {operation === "rename" && currentGroup.selectedResult && currentGroup.episodes.length > 0 && (
                         <div className="flex flex-col gap-2 lg:gap-4 p-3 lg:p-4 bg-muted/30 rounded-lg border">
                           <label className="text-xs lg:text-sm font-medium">
-                            {language === "it" ? "Opzioni:" : "Options:"}
+                            {t.multiSeries.options}
                           </label>
                           <div className="flex flex-col lg:flex-row lg:flex-wrap gap-2 lg:gap-4">
                             <div className="flex items-center gap-2">
@@ -1265,7 +1284,7 @@ function IdentifyMultiSeriesContent() {
                                 htmlFor="use-ffprobe-page"
                                 className="text-xs lg:text-sm cursor-pointer select-none"
                               >
-                                {language === "it" ? "FFprobe qualità" : "FFprobe quality"}
+                                {t.multiSeries.ffprobeQuality}
                               </label>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1285,7 +1304,7 @@ function IdentifyMultiSeriesContent() {
                                 htmlFor={`rename-season-folders-${currentSlide}`}
                                 className="text-xs lg:text-sm cursor-pointer select-none"
                               >
-                                {language === "it" ? "Crea cartelle stagione" : "Create season folders"}
+                                {t.multiSeries.createSeasonFolders}
                               </label>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1305,7 +1324,7 @@ function IdentifyMultiSeriesContent() {
                                 htmlFor={`rename-main-folder-${currentSlide}`}
                                 className="text-xs lg:text-sm cursor-pointer select-none"
                               >
-                                {language === "it" ? "Crea cartella principale" : "Create main folder"}
+                                {t.multiSeries.createMainFolder}
                               </label>
                             </div>
                           </div>
@@ -1320,18 +1339,18 @@ function IdentifyMultiSeriesContent() {
                           {operation !== "rename" && (
                             <div className="space-y-1 lg:space-y-2">
                               <label className="text-xs lg:text-sm font-medium">
-                                {language === "it" ? "Cartella destinazione" : "Destination"}
+                                {t.multiSeries.destination}
                               </label>
                               <Select
                                 value={selectedBaseFolder}
                                 onValueChange={(value) => setSelectedBaseFolder(value === "__none__" ? "" : value)}
                               >
                                 <SelectTrigger className="w-full h-9 lg:h-10 text-sm">
-                                  <SelectValue placeholder={language === "it" ? "Seleziona..." : "Select..."} />
+                                  <SelectValue placeholder={t.multiSeries.selectPlaceholder} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="__none__">
-                                    {language === "it" ? "(Radice Media)" : "(Media Root)"}
+                                    {t.identify.mediaRoot}
                                   </SelectItem>
                                   {seriesBaseFolders.map((folder: BaseFolder) => (
                                     <SelectItem key={folder.name} value={folder.name}>
@@ -1345,50 +1364,74 @@ function IdentifyMultiSeriesContent() {
 
                           {/* Search section */}
                           <div className="space-y-1 lg:space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               <label className="text-xs lg:text-sm font-medium">
-                                {language === "it" ? "Cerca" : "Search"} {activeProvider.toUpperCase()}
+                                {t.common.search} {activeProvider.toUpperCase()}
                               </label>
-                              <div className="flex rounded-md border overflow-hidden">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (activeProvider !== "tvdb") {
-                                      setActiveProvider("tvdb");
-                                      setProviderManuallyChanged(true);
-                                    }
-                                  }}
-                                  className={`px-2 py-0.5 text-xs font-medium transition-colors ${
-                                    activeProvider === "tvdb"
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-background hover:bg-muted"
-                                  }`}
-                                >
-                                  TVDB
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (activeProvider !== "tmdb") {
-                                      setActiveProvider("tmdb");
-                                      setProviderManuallyChanged(true);
-                                    }
-                                  }}
-                                  className={`px-2 py-0.5 text-xs font-medium transition-colors ${
-                                    activeProvider === "tmdb"
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-background hover:bg-muted"
-                                  }`}
-                                >
-                                  TMDB
-                                </button>
+                              <div className="flex items-center gap-2">
+                                {/* Episode order selector for TVDB */}
+                                {activeProvider === "tvdb" && (
+                                  <Select
+                                    value={episodeOrder}
+                                    onValueChange={(value: EpisodeOrder) => setEpisodeOrder(value)}
+                                  >
+                                    <SelectTrigger className="h-6 w-32 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="default">
+                                        <span className="text-xs">{t.identify.orderAired}</span>
+                                      </SelectItem>
+                                      <SelectItem value="official">
+                                        <span className="text-xs">{t.identify.orderDVD}</span>
+                                      </SelectItem>
+                                      <SelectItem value="absolute">
+                                        <span className="text-xs">{t.identify.orderAbsolute}</span>
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                                <div className="flex rounded-md border overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (activeProvider !== "tvdb") {
+                                        setActiveProvider("tvdb");
+                                        setProviderManuallyChanged(true);
+                                      }
+                                    }}
+                                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
+                                      activeProvider === "tvdb"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-background hover:bg-muted"
+                                    }`}
+                                  >
+                                    TVDB
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (activeProvider !== "tmdb") {
+                                        setActiveProvider("tmdb");
+                                        setProviderManuallyChanged(true);
+                                      }
+                                    }}
+                                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
+                                      activeProvider === "tmdb"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-background hover:bg-muted"
+                                    }`}
+                                  >
+                                    TMDB
+                                  </button>
+                                </div>
                               </div>
                             </div>
                             <div className="flex gap-2">
                               <Input
                                 value={currentGroup.searchQuery}
                                 onChange={(e) => updateSearchQuery(currentSlide, e.target.value)}
-                                placeholder={language === "it" ? "Cerca serie..." : "Search series..."}
+                                placeholder={t.multiSeries.searchSeries}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     performSearch(currentSlide, currentGroup.searchQuery, currentGroup.searchYear);
@@ -1403,7 +1446,7 @@ function IdentifyMultiSeriesContent() {
                                   const value = e.target.value.replace(/\D/g, "").slice(0, 4);
                                   updateSearchYear(currentSlide, value);
                                 }}
-                                placeholder={language === "it" ? "Anno" : "Year"}
+                                placeholder={t.common.year}
                                 className="w-20 h-9 lg:h-10 text-sm"
                                 maxLength={4}
                                 onKeyDown={(e) => {
@@ -1435,7 +1478,7 @@ function IdentifyMultiSeriesContent() {
                           {currentGroup.searchResults.length > 0 && (
                             <div className="space-y-1 lg:space-y-2">
                               <label className="text-xs lg:text-sm font-medium">
-                                {language === "it" ? "Risultati" : "Results"}
+                                {t.common.results}
                               </label>
                               <div className="border rounded-lg divide-y max-h-48 lg:max-h-64 overflow-y-auto">
                                 {currentGroup.searchResults.slice(0, 5).map((result) => (
@@ -1485,7 +1528,7 @@ function IdentifyMultiSeriesContent() {
                           {currentGroup.isLoadingEpisodes && (
                             <div className="p-4 lg:p-6 flex items-center justify-center gap-2 lg:gap-3 text-muted-foreground border rounded-lg">
                               <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" />
-                              <span className="text-xs lg:text-sm">{language === "it" ? "Caricamento episodi..." : "Loading episodes..."}</span>
+                              <span className="text-xs lg:text-sm">{t.multiSeries.loadingEpisodes}</span>
                             </div>
                           )}
                         </div>
@@ -1498,7 +1541,7 @@ function IdentifyMultiSeriesContent() {
                             return (
                               <div className="space-y-2 lg:space-y-3">
                                 <label className="text-xs lg:text-sm font-medium flex items-center gap-2">
-                                  {language === "it" ? "File ed Episodi" : "Files & Episodes"}
+                                  {t.multiSeries.filesAndEpisodes}
                                   <span className="text-xs text-muted-foreground font-normal">
                                     ({currentGroup.files.filter(f => f.newPath && !f.error).length}/{currentGroup.files.length})
                                   </span>
@@ -1511,10 +1554,10 @@ function IdentifyMultiSeriesContent() {
                                     const seasonValidCount = seasonFiles.filter(({ file: f }) => f.newPath && !f.error).length;
                                     const seasonErrorCount = seasonFiles.filter(({ file: f }) => f.error).length;
                                     const seasonLabel = season === -1
-                                      ? (language === "it" ? "Stagione sconosciuta" : "Unknown Season")
+                                      ? t.naming.unknownSeason
                                       : season === 0
-                                        ? strings.specials
-                                        : `${strings.season} ${season}`;
+                                        ? t.naming.specials
+                                        : `${t.naming.season} ${season}`;
 
                                     return (
                                       <div key={season} className="border-b last:border-b-0">
@@ -1687,8 +1730,8 @@ function IdentifyMultiSeriesContent() {
                           {!currentGroup.selectedResult && !currentGroup.isLoadingEpisodes && (
                             <div className="border-2 border-dashed rounded-lg p-4 lg:p-8 text-center text-muted-foreground">
                               <Search className="h-6 w-6 lg:h-8 lg:w-8 mx-auto mb-2 lg:mb-3 opacity-50" />
-                              <p className="font-medium text-sm lg:text-base">{language === "it" ? "Seleziona una serie" : "Select a series"}</p>
-                              <p className="text-xs lg:text-sm mt-1">{language === "it" ? "Cerca e seleziona una serie TV" : "Search and select a TV series"}</p>
+                              <p className="font-medium text-sm lg:text-base">{t.multiSeries.selectASeries}</p>
+                              <p className="text-xs lg:text-sm mt-1">{t.multiSeries.searchAndSelectSeries}</p>
                             </div>
                           )}
                         </div>
@@ -1711,7 +1754,7 @@ function IdentifyMultiSeriesContent() {
                             size="sm"
                           >
                             <ChevronLeft className="h-4 w-4 mr-1" />
-                            <span className="text-xs">{language === "it" ? "Prec" : "Prev"}</span>
+                            <span className="text-xs">{t.multiSeries.prev}</span>
                           </Button>
                           <Button
                             variant="outline"
@@ -1720,7 +1763,7 @@ function IdentifyMultiSeriesContent() {
                             className="flex-1 h-9 px-2"
                             size="sm"
                           >
-                            <span className="text-xs">{language === "it" ? "Succ" : "Next"}</span>
+                            <span className="text-xs">{t.multiSeries.next}</span>
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                           <Button
@@ -1731,7 +1774,7 @@ function IdentifyMultiSeriesContent() {
                             size="sm"
                           >
                             <SkipForward className="h-4 w-4 mr-1" />
-                            <span className="text-xs">{language === "it" ? "Salta" : "Skip"}</span>
+                            <span className="text-xs">{t.common.skip}</span>
                           </Button>
                         </div>
                         {/* Second row: Accept + Summary */}
@@ -1743,7 +1786,7 @@ function IdentifyMultiSeriesContent() {
                             size="sm"
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            <span className="text-xs">{language === "it" ? "Accetta" : "Accept"} ({currentGroup.files.filter(f => f.newPath && !f.error).length})</span>
+                            <span className="text-xs">{t.multiSeries.accept} ({currentGroup.files.filter(f => f.newPath && !f.error).length})</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -1751,7 +1794,7 @@ function IdentifyMultiSeriesContent() {
                             className="h-9 px-3 text-muted-foreground text-xs"
                             size="sm"
                           >
-                            {language === "it" ? "Riepilogo" : "Summary"}
+                            {t.multiSeries.summary}
                           </Button>
                         </div>
                       </div>
@@ -1767,7 +1810,7 @@ function IdentifyMultiSeriesContent() {
                             className="w-32 h-11"
                           >
                             <ChevronLeft className="h-4 w-4 mr-1" />
-                            {language === "it" ? "Precedente" : "Previous"}
+                            {t.multiSeries.previous}
                           </Button>
                           <Button
                             variant="outline"
@@ -1775,7 +1818,7 @@ function IdentifyMultiSeriesContent() {
                             disabled={currentSlide === seriesGroups.length - 1}
                             className="w-32 h-11"
                           >
-                            {language === "it" ? "Successivo" : "Next"}
+                            {t.multiSeries.next}
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                         </div>
@@ -1792,7 +1835,7 @@ function IdentifyMultiSeriesContent() {
                             className="w-32 h-11"
                           >
                             <SkipForward className="h-4 w-4 mr-2" />
-                            {language === "it" ? "Salta" : "Skip"}
+                            {t.common.skip}
                           </Button>
                           <Button
                             onClick={() => acceptGroup(currentSlide)}
@@ -1800,14 +1843,14 @@ function IdentifyMultiSeriesContent() {
                             className="min-w-40 h-11"
                           >
                             <Check className="h-4 w-4 mr-2" />
-                            {language === "it" ? "Accetta" : "Accept"} ({currentGroup.files.filter(f => f.newPath && !f.error).length})
+                            {t.multiSeries.accept} ({currentGroup.files.filter(f => f.newPath && !f.error).length})
                           </Button>
                           <Button
                             variant="secondary"
                             onClick={() => setViewMode("summary")}
                             className="h-11"
                           >
-                            {language === "it" ? "Riepilogo" : "Summary"}
+                            {t.multiSeries.summary}
                           </Button>
                         </div>
                       </div>
@@ -1825,12 +1868,12 @@ function IdentifyMultiSeriesContent() {
                 {/* Summary header */}
                 <div className="shrink-0 mb-4 lg:mb-6">
                   <h2 className="text-lg lg:text-xl font-semibold">
-                    {language === "it" ? "Riepilogo Selezioni" : "Selection Summary"}
+                    {t.multiSeries.selectionSummary}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {language === "it"
-                      ? `${totalAcceptedFiles} file pronti per ${operation === "copy" ? "copia" : operation === "move" ? "spostamento" : "rinomina"}`
-                      : `${totalAcceptedFiles} files ready for ${operation}`}
+                    {t.multiSeries.filesReadyFor
+                      .replace("{count}", String(totalAcceptedFiles))
+                      .replace("{operation}", operation === "copy" ? t.common.copy.toLowerCase() : operation === "move" ? t.common.move.toLowerCase() : t.common.rename.toLowerCase())}
                   </p>
                 </div>
 
@@ -1838,18 +1881,18 @@ function IdentifyMultiSeriesContent() {
                 <div className="shrink-0 flex flex-wrap gap-3 mb-4 lg:mb-6">
                   <span className="inline-flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full">
                     <Check className="h-4 w-4" />
-                    {totalAcceptedFiles} {language === "it" ? "file pronti" : "files ready"}
+                    {totalAcceptedFiles} {t.multiSeries.filesReady}
                   </span>
                   {skippedCount > 0 && (
                     <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
                       <X className="h-4 w-4" />
-                      {skippedCount} {language === "it" ? "saltati" : "skipped"}
+                      {skippedCount} {t.multiSeries.skipped}
                     </span>
                   )}
                   {pendingCount > 0 && (
                     <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-full">
                       <AlertCircle className="h-4 w-4" />
-                      {pendingCount} {language === "it" ? "in attesa" : "pending"}
+                      {pendingCount} {t.multiSeries.pending}
                     </span>
                   )}
                 </div>
@@ -1892,15 +1935,15 @@ function IdentifyMultiSeriesContent() {
                             </div>
                             {group.status === "accepted" ? (
                               <p className="text-xs lg:text-sm text-green-600 dark:text-green-400 mt-0.5">
-                                {group.files.filter(f => f.newPath && !f.error).length} {language === "it" ? "file pronti" : "files ready"}
+                                {group.files.filter(f => f.newPath && !f.error).length} {t.multiSeries.filesReady}
                               </p>
                             ) : group.status === "skipped" ? (
                               <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
-                                {language === "it" ? "Saltato" : "Skipped"}
+                                {t.multiSeries.skipped}
                               </p>
                             ) : (
                               <p className="text-xs lg:text-sm text-amber-600 dark:text-amber-400 mt-0.5">
-                                {language === "it" ? "In attesa" : "Pending"}
+                                {t.multiSeries.pending}
                               </p>
                             )}
 
@@ -1933,7 +1976,7 @@ function IdentifyMultiSeriesContent() {
                             onClick={() => goToSlide(groupIndex)}
                             className="shrink-0 h-9 lg:h-10"
                           >
-                            {language === "it" ? "Modifica" : "Edit"}
+                            {t.multiSeries.edit}
                           </Button>
                         </div>
                       </div>
@@ -1954,7 +1997,7 @@ function IdentifyMultiSeriesContent() {
               disabled={isLoading}
               className="h-10 lg:h-11 px-4 lg:px-6"
             >
-              {language === "it" ? "Annulla" : "Cancel"}
+              {t.common.cancel}
             </Button>
 
             {/* Desktop: show Back to carousel button in summary view */}
@@ -1965,7 +2008,7 @@ function IdentifyMultiSeriesContent() {
                 className="hidden lg:flex h-10 lg:h-11 px-4 lg:px-6"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                {language === "it" ? "Torna al dettaglio" : "Back to details"}
+                {t.multiSeries.backToDetails}
               </Button>
             )}
 
@@ -1980,19 +2023,17 @@ function IdentifyMultiSeriesContent() {
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {operation === "copy"
-                    ? language === "it" ? "Copia..." : "Copying..."
+                    ? t.multiSeries.copyingEllipsis
                     : operation === "move"
-                    ? language === "it" ? "Sposta..." : "Moving..."
-                    : language === "it" ? "Rinomina..." : "Renaming..."}
+                    ? t.multiSeries.movingEllipsis
+                    : t.multiSeries.renamingEllipsis}
                 </>
               ) : (
-                `${
-                  operation === "copy"
-                    ? language === "it" ? "Copia" : "Copy"
-                    : operation === "move"
-                    ? language === "it" ? "Sposta" : "Move"
-                    : language === "it" ? "Rinomina" : "Rename"
-                } ${totalAcceptedFiles} file${totalAcceptedFiles !== 1 ? "s" : ""}`
+                operation === "copy"
+                  ? t.multiSeries.copyFiles.replace("{count}", String(totalAcceptedFiles))
+                  : operation === "move"
+                  ? t.multiSeries.moveFiles.replace("{count}", String(totalAcceptedFiles))
+                  : t.multiSeries.renameFiles.replace("{count}", String(totalAcceptedFiles))
               )}
             </Button>
           </div>

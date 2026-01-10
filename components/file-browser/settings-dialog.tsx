@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
 import { Plus, X, Settings2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NamingTemplateDialog } from "./naming-template-dialog";
+import { getTranslations } from "@/lib/translations";
 import type {
   Language,
   MetadataProvider,
@@ -89,6 +90,8 @@ export function SettingsDialog({
   onExtraTagValuesChange,
   isLoading,
 }: SettingsDialogProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
+
   const [newSeriesFolder, setNewSeriesFolder] = useState("");
   const [newMoviesFolder, setNewMoviesFolder] = useState("");
   const [newQualityValue, setNewQualityValue] = useState("");
@@ -254,25 +257,23 @@ export function SettingsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-4 sm:p-6 max-h-[85dvh] flex flex-col">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>{t.settings.title}</DialogTitle>
           <DialogDescription>
-            {language === "it"
-              ? "Configura le preferenze dell'applicazione"
-              : "Configure application preferences"}
+            {t.settings.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4 flex-1 overflow-y-auto">
           {/* Language setting */}
           <div className="space-y-2">
-            <Label htmlFor="language">Language / Lingua</Label>
+            <Label htmlFor="language">{t.settings.language}</Label>
             <Select
               value={language}
               onValueChange={(value) => onLanguageChange(value as Language)}
               disabled={isLoading}
             >
               <SelectTrigger id="language" className="w-full">
-                <SelectValue placeholder="Select language..." />
+                <SelectValue placeholder={t.settings.selectLanguage} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">
@@ -285,6 +286,11 @@ export function SettingsDialog({
                     🇮🇹 Italiano
                   </span>
                 </SelectItem>
+                <SelectItem value="de">
+                  <span className="flex items-center gap-2">
+                    🇩🇪 Deutsch
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -292,18 +298,16 @@ export function SettingsDialog({
           {/* Metadata Provider settings */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Fonti metadati" : "Metadata Providers"}
+              {t.settings.metadataProviders}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Seleziona la fonte predefinita per serie TV e film"
-                : "Select the default source for TV series and movies"}
+              {t.settings.metadataProvidersDescription}
             </p>
 
             {/* Series provider */}
             <div className="flex items-center gap-2">
               <span className="text-sm min-w-20">
-                {language === "it" ? "Serie TV:" : "TV Series:"}
+                {t.settings.tvSeries}
               </span>
               <Select
                 value={seriesMetadataProvider}
@@ -323,7 +327,7 @@ export function SettingsDialog({
             {/* Movies provider */}
             <div className="flex items-center gap-2">
               <span className="text-sm min-w-20">
-                {language === "it" ? "Film:" : "Movies:"}
+                {t.settings.movies}
               </span>
               <Select
                 value={moviesMetadataProvider}
@@ -344,12 +348,10 @@ export function SettingsDialog({
           {/* Global naming templates */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Template di denominazione" : "Naming Templates"}
+              {t.settings.namingTemplates}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Configura come vengono rinominati i file"
-                : "Configure how files are renamed"}
+              {t.settings.namingTemplatesDescription}
             </p>
             <Button
               variant="outline"
@@ -358,19 +360,17 @@ export function SettingsDialog({
               disabled={isLoading}
             >
               <Settings2 className="h-4 w-4" />
-              {language === "it" ? "Configura template..." : "Configure templates..."}
+              {t.settings.configureTemplates}
             </Button>
           </div>
 
           {/* Series base folders */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Cartelle base Serie TV" : "TV Series Base Folders"}
+              {t.settings.seriesBaseFolders}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Aggiungi cartelle come 'Serie TV', 'Anime', ecc."
-                : "Add folders like 'TV Series', 'Anime', etc."}
+              {t.settings.seriesBaseFoldersDescription}
             </p>
 
             {/* Existing folders */}
@@ -389,7 +389,7 @@ export function SettingsDialog({
                           onClick={() => openFolderNamingDialog("series", folder.name)}
                           className="hover:text-primary p-0.5"
                           disabled={isLoading}
-                          title={language === "it" ? "Template denominazione" : "Naming template"}
+                          title={t.settings.namingTemplate}
                         >
                           <Settings2 className={`h-3 w-3 ${folder.seriesNamingTemplate ? "text-primary" : ""}`} />
                         </button>
@@ -411,12 +411,12 @@ export function SettingsDialog({
                           disabled={isLoading}
                           className="h-3.5 w-3.5"
                         />
-                        <span>{language === "it" ? "Usa FFprobe" : "Use FFprobe"}</span>
+                        <span>{t.settings.useFFprobe}</span>
                       </label>
                     </div>
                     {folder.seriesNamingTemplate && (
                       <p className="text-[10px] text-primary mt-1">
-                        {language === "it" ? "Template personalizzato" : "Custom template"}
+                        {t.settings.customTemplate}
                       </p>
                     )}
                   </div>
@@ -430,7 +430,7 @@ export function SettingsDialog({
                 value={newSeriesFolder}
                 onChange={(e) => setNewSeriesFolder(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, addSeriesFolder)}
-                placeholder={language === "it" ? "es. Anime" : "e.g. Anime"}
+                placeholder={t.settings.placeholder.anime}
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -449,12 +449,10 @@ export function SettingsDialog({
           {/* Movies base folders */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Cartelle base Film" : "Movies Base Folders"}
+              {t.settings.moviesBaseFolders}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Aggiungi cartelle come 'Film', 'Documentari', ecc."
-                : "Add folders like 'Movies', 'Documentaries', etc."}
+              {t.settings.moviesBaseFoldersDescription}
             </p>
 
             {/* Existing folders */}
@@ -473,7 +471,7 @@ export function SettingsDialog({
                           onClick={() => openFolderNamingDialog("movies", folder.name)}
                           className="hover:text-primary p-0.5"
                           disabled={isLoading}
-                          title={language === "it" ? "Template denominazione" : "Naming template"}
+                          title={t.settings.namingTemplate}
                         >
                           <Settings2 className={`h-3 w-3 ${folder.movieNamingTemplate ? "text-primary" : ""}`} />
                         </button>
@@ -495,12 +493,12 @@ export function SettingsDialog({
                           disabled={isLoading}
                           className="h-3.5 w-3.5"
                         />
-                        <span>{language === "it" ? "Usa FFprobe" : "Use FFprobe"}</span>
+                        <span>{t.settings.useFFprobe}</span>
                       </label>
                     </div>
                     {folder.movieNamingTemplate && (
                       <p className="text-[10px] text-primary mt-1">
-                        {language === "it" ? "Template personalizzato" : "Custom template"}
+                        {t.settings.customTemplate}
                       </p>
                     )}
                   </div>
@@ -514,7 +512,7 @@ export function SettingsDialog({
                 value={newMoviesFolder}
                 onChange={(e) => setNewMoviesFolder(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, addMoviesFolder)}
-                placeholder={language === "it" ? "es. Documentari" : "e.g. Documentaries"}
+                placeholder={t.settings.placeholder.documentaries}
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -533,12 +531,10 @@ export function SettingsDialog({
           {/* Quality values */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Valori qualità" : "Quality Values"}
+              {t.settings.qualityValues}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Valori da riconoscere nei nomi file (es. 1080p, 720p, 4K)"
-                : "Values to detect in filenames (e.g. 1080p, 720p, 4K)"}
+              {t.settings.qualityValuesDescription}
             </p>
 
             {/* Existing quality values */}
@@ -569,7 +565,7 @@ export function SettingsDialog({
                 value={newQualityValue}
                 onChange={(e) => setNewQualityValue(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, addQualityValue)}
-                placeholder={language === "it" ? "es. 1080p" : "e.g. 1080p"}
+                placeholder={t.settings.placeholder.quality}
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -588,12 +584,10 @@ export function SettingsDialog({
           {/* Codec values */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Valori codec" : "Codec Values"}
+              {t.settings.codecValues}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Valori da riconoscere nei nomi file (es. x264, HEVC, HDR)"
-                : "Values to detect in filenames (e.g. x264, HEVC, HDR)"}
+              {t.settings.codecValuesDescription}
             </p>
 
             {/* Existing codec values */}
@@ -624,7 +618,7 @@ export function SettingsDialog({
                 value={newCodecValue}
                 onChange={(e) => setNewCodecValue(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, addCodecValue)}
-                placeholder={language === "it" ? "es. x265" : "e.g. x265"}
+                placeholder={t.settings.placeholder.codec}
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -643,12 +637,10 @@ export function SettingsDialog({
           {/* Extra tag values */}
           <div className="space-y-2">
             <Label>
-              {language === "it" ? "Tag extra" : "Extra Tags"}
+              {t.settings.extraTags}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {language === "it"
-                ? "Tag aggiuntivi da riconoscere (es. 10bit, HDR, ITA, ENG)"
-                : "Additional tags to detect (e.g. 10bit, HDR, ITA, ENG)"}
+              {t.settings.extraTagsDescription}
             </p>
 
             {/* Existing extra tag values */}
@@ -679,7 +671,7 @@ export function SettingsDialog({
                 value={newExtraTagValue}
                 onChange={(e) => setNewExtraTagValue(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, addExtraTagValue)}
-                placeholder={language === "it" ? "es. 10bit" : "e.g. 10bit"}
+                placeholder={t.settings.placeholder.extraTag}
                 disabled={isLoading}
                 className="flex-1"
               />

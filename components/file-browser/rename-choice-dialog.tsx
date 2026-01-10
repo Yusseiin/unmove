@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { MetadataProvider } from "@/types/config";
+import { getTranslations } from "@/lib/translations";
+import type { Language, MetadataProvider } from "@/types/config";
 
 interface RenameChoiceDialogProps {
   open: boolean;
@@ -22,6 +24,7 @@ interface RenameChoiceDialogProps {
   onIdentifyMovieRename?: () => void; // For identifying a single file as a movie
   onBatchIdentifyRename?: () => void; // For identifying multiple movies separately
   onMultiSeriesRename?: () => void; // For identifying multiple different TV series
+  language?: Language;
 }
 
 export function RenameChoiceDialog({
@@ -35,18 +38,19 @@ export function RenameChoiceDialog({
   onIdentifyMovieRename,
   onBatchIdentifyRename,
   onMultiSeriesRename,
+  language = "en",
 }: RenameChoiceDialogProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const seriesProviderName = seriesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
   const moviesProviderName = moviesMetadataProvider === "tmdb" ? "TMDB" : "TVDB";
-  const itemText = itemCount === 1 ? "item" : "items";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-3 sm:p-6 max-h-[85vh] overflow-y-auto">
         <DialogHeader className="pb-1 sm:pb-2">
-          <DialogTitle className="text-base sm:text-lg">Rename Options</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">{t.renameChoice.title}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Rename {itemCount} {itemText}
+            {t.renameChoice.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -57,9 +61,9 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onNormalRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Rename Manually</span>
+              <span className="font-semibold text-sm sm:text-base">{t.common.rename}</span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
-                Enter a new name
+                {t.renameChoice.enterNewName}
               </span>
             </Button>
           )}
@@ -70,10 +74,10 @@ export function RenameChoiceDialog({
             onClick={onIdentifyRename}
           >
             <span className="font-semibold text-sm sm:text-base">
-              {itemCount === 1 ? `Identify as TV Series with ${seriesProviderName}` : `Identify TV Series with ${seriesProviderName}`}
+              {t.renameChoice.identifySeries} ({seriesProviderName})
             </span>
             <span className="text-xs sm:text-sm text-muted-foreground text-left">
-              Rename as TV series episodes
+              {t.renameChoice.identifySeriesDescription}
             </span>
           </Button>
 
@@ -83,9 +87,11 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onIdentifyMovieRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Identify as Movie with {moviesProviderName}</span>
+              <span className="font-semibold text-sm sm:text-base">
+                {t.renameChoice.identifyMovie} ({moviesProviderName})
+              </span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
-                Rename as a movie file
+                {t.renameChoice.identifyMovieDescription}
               </span>
             </Button>
           )}
@@ -96,9 +102,11 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onBatchIdentifyRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Identify Movies with {moviesProviderName}</span>
+              <span className="font-semibold text-sm sm:text-base">
+                {t.renameChoice.identifyMoviesSeparately} ({moviesProviderName})
+              </span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
-                Search each file independently
+                {t.renameChoice.identifyMoviesSeparatelyDescription}
               </span>
             </Button>
           )}
@@ -109,9 +117,11 @@ export function RenameChoiceDialog({
               className="h-auto py-3 sm:py-4 flex flex-col items-start gap-1"
               onClick={onMultiSeriesRename}
             >
-              <span className="font-semibold text-sm sm:text-base">Multiple TV Series with {seriesProviderName}</span>
+              <span className="font-semibold text-sm sm:text-base">
+                {t.renameChoice.multiSeries} ({seriesProviderName})
+              </span>
               <span className="text-xs sm:text-sm text-muted-foreground text-left">
-                Episodes from different series
+                {t.renameChoice.multiSeriesDescription}
               </span>
             </Button>
           )}
@@ -119,7 +129,7 @@ export function RenameChoiceDialog({
 
         <DialogFooter className="pt-1 sm:pt-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full sm:w-auto h-8 sm:h-10 text-xs sm:text-sm">
-            Cancel
+            {t.common.cancel}
           </Button>
         </DialogFooter>
       </DialogContent>

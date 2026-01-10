@@ -49,6 +49,8 @@ export interface TVDBEpisode {
   productionCode?: string;
   // Italian translation (added after fetch)
   nameItalian?: string;
+  // German translation (added after fetch)
+  nameGerman?: string;
   // English translation (added after fetch for non-Latin episode names)
   nameEnglish?: string;
 }

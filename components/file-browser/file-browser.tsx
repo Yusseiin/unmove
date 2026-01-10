@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, memo, useEffect } from "react";
+import { useState, useRef, useCallback, memo, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { showSuccessToast, showErrorToast } from "@/components/ui/toast";
 import {
@@ -11,6 +11,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFileBrowser } from "@/hooks/use-file-browser";
 import { useConfig } from "@/hooks/use-config";
+import { getTranslations } from "@/lib/translations";
 import { CreateFolderDialog } from "./create-folder-dialog";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { RenameDialog } from "./rename-dialog";
@@ -24,6 +25,7 @@ import { BatchIdentifyDialog } from "./batch-identify-dialog";
 import { SettingsDialog } from "./settings-dialog";
 import { RenameChoiceDialog } from "./rename-choice-dialog";
 import type { PaneType, OperationResponse, FileEntry } from "@/types/files";
+import type { Language } from "@/types/config";
 
 interface PaneRef {
   refresh: () => void;
@@ -41,6 +43,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
   const router = useRouter();
   const isMobile = useIsMobile();
   const { config, setLanguage, updateConfig, isLoading: configLoading } = useConfig();
+  const t = useMemo(() => getTranslations(config.language), [config.language]);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [createFolderPath, setCreateFolderPath] = useState("/");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -538,7 +541,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
               }`}
               onClick={() => setMobileActivePane("downloads")}
             >
-              Downloads
+              {t.fileBrowser.downloads}
             </button>
             <button
               className={`flex-1 py-2 text-sm font-medium transition-colors ${
@@ -548,7 +551,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
               }`}
               onClick={() => setMobileActivePane("media")}
             >
-              Media
+              {t.fileBrowser.media}
             </button>
           </div>
           {/* Active pane content - both panes stay mounted to preserve state */}
@@ -560,6 +563,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
               onDelete={handleDelete}
               onRename={handleRenameWithChoice}
               paneRef={setDownloadsPaneRef}
+              language={config.language}
             />
           </div>
           <div className={`flex-1 overflow-hidden ${mobileActivePane === "media" ? "" : "hidden"}`}>
@@ -569,6 +573,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
               onRename={handleRenameWithChoice}
               onCreateFolder={handleCreateFolder}
               paneRef={setMediaPaneRef}
+              language={config.language}
             />
           </div>
         </div>
@@ -578,7 +583,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full border-r">
               <div className="bg-muted/50 px-3 py-2 border-b font-medium text-sm">
-                Downloads
+                {t.fileBrowser.downloads}
               </div>
               <div className="h-[calc(100%-37px)] overflow-hidden">
                 <FilePane
@@ -588,6 +593,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
                   onDelete={handleDelete}
                   onRename={handleRenameWithChoice}
                   paneRef={setDownloadsPaneRef}
+                  language={config.language}
                 />
               </div>
             </div>
@@ -596,7 +602,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full">
               <div className="bg-muted/50 px-3 py-2 border-b font-medium text-sm">
-                Media
+                {t.fileBrowser.media}
               </div>
               <div className="h-[calc(100%-37px)] overflow-hidden">
                 <FilePane
@@ -605,6 +611,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
                   onRename={handleRenameWithChoice}
                   onCreateFolder={handleCreateFolder}
                   paneRef={setMediaPaneRef}
+                  language={config.language}
                 />
               </div>
             </div>
@@ -625,6 +632,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onIdentifyMovie={handleIdentifyMovieChoice}
         onBatchIdentify={handleBatchIdentifyChoice}
         onMultiSeriesTransfer={handleMultiSeriesTransferChoice}
+        language={config.language}
       />
 
       <CreateFolderDialog
@@ -632,6 +640,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onOpenChange={setCreateFolderOpen}
         onSubmit={handleConfirmCreateFolder}
         isLoading={isOperationLoading}
+        language={config.language}
       />
 
       <DeleteConfirmDialog
@@ -640,6 +649,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         itemCount={deletePaths.length}
         onConfirm={handleConfirmDelete}
         isLoading={isOperationLoading}
+        language={config.language}
       />
 
       <RenameDialog
@@ -648,6 +658,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         currentName={renameCurrentName}
         onSubmit={handleConfirmRename}
         isLoading={isOperationLoading}
+        language={config.language}
       />
 
       <RenameChoiceDialog
@@ -661,6 +672,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onIdentifyMovieRename={handleMovieRenameChoice}
         onBatchIdentifyRename={handleBatchTvdbRenameChoice}
         onMultiSeriesRename={handleMultiSeriesRenameChoice}
+        language={config.language}
       />
 
       <DestinationPicker
@@ -672,6 +684,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onCreateFolder={handleCreateFolder}
         isLoading={isOperationLoading}
         initialPath={transferDestination}
+        language={config.language}
       />
 
       <TransferConfirmDialog
@@ -682,6 +695,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         destinationPath={transferDestination}
         onConfirm={() => handleConfirmTransfer(transferDestination)}
         isLoading={isOperationLoading}
+        language={config.language}
       />
 
       <OverwriteConfirmDialog
@@ -692,6 +706,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         onConfirm={handleConfirmOverwrite}
         onCancel={handleCancelOverwrite}
         isLoading={isOperationLoading}
+        language={config.language}
       />
 
       <TransferProgressDialog
@@ -704,6 +719,7 @@ export function FileBrowser({ settingsOpen, onSettingsOpenChange }: FileBrowserP
         }))}
         overwrite={transferProgressOverwrite}
         onComplete={handleTransferProgressComplete}
+        language={config.language}
       />
 
       <IdentifyDialog
@@ -784,6 +800,7 @@ interface FilePaneProps {
   onRename: (pane: PaneType, paths: string[], entries: FileEntry[]) => void;
   onCreateFolder?: (path: string) => void;
   paneRef: (ref: PaneRef | null) => void;
+  language?: Language;
 }
 
 const FilePane = memo(function FilePane({
@@ -794,7 +811,9 @@ const FilePane = memo(function FilePane({
   onRename,
   onCreateFolder,
   paneRef,
+  language = "en",
 }: FilePaneProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const {
     currentPath,
     entries,
@@ -839,14 +858,14 @@ const FilePane = memo(function FilePane({
               disabled={selectedPaths.size === 0 || isLoading}
               onClick={() => onCopy?.(Array.from(selectedPaths), entries)}
             >
-              Copy
+              {t.common.copy}
             </button>
             <button
               className="inline-flex items-center justify-center gap-1 whitespace-nowrap text-xs sm:text-sm font-medium h-8 px-2 sm:px-3 rounded-md hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
               disabled={selectedPaths.size === 0 || isLoading}
               onClick={() => onMove?.(Array.from(selectedPaths), entries)}
             >
-              Move
+              {t.common.move}
             </button>
           </>
         )}
@@ -856,23 +875,23 @@ const FilePane = memo(function FilePane({
             disabled={isLoading}
             onClick={() => onCreateFolder?.(currentPath)}
           >
-            New Folder
+            {t.toolbar.newFolder}
           </button>
         )}
         <button
           className="inline-flex items-center justify-center gap-1 whitespace-nowrap text-xs sm:text-sm font-medium h-8 px-2 sm:px-3 rounded-md hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
           disabled={selectedPaths.size === 0 || isLoading}
           onClick={handleRenameClick}
-          title="Rename"
+          title={t.common.rename}
         >
-          Rename
+          {t.common.rename}
         </button>
         <button
           className="inline-flex items-center justify-center gap-1 whitespace-nowrap text-xs sm:text-sm font-medium h-8 px-2 sm:px-3 rounded-md hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
           disabled={selectedPaths.size === 0 || isLoading}
           onClick={() => onDelete(pane, Array.from(selectedPaths))}
         >
-          Delete
+          {t.common.delete}
         </button>
         <div className="flex-1 min-w-2" />
         <button
@@ -909,7 +928,7 @@ const FilePane = memo(function FilePane({
             onClick={() => navigate("/")}
             className="hover:text-primary transition-colors shrink-0 cursor-pointer"
           >
-            {pane === "downloads" ? "Downloads" : "Media"}
+            {pane === "downloads" ? t.fileBrowser.downloads : t.fileBrowser.media}
           </button>
           {currentPath !== "/" &&
             currentPath
@@ -949,7 +968,7 @@ const FilePane = memo(function FilePane({
           </div>
         ) : entries.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground">
-            This folder is empty
+            {t.fileBrowser.emptyFolder}
           </div>
         ) : (
           <FileList

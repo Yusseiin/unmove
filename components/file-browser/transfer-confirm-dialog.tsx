@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { getTranslations, interpolate } from "@/lib/translations";
+import type { Language } from "@/types/config";
 
 interface TransferConfirmDialogProps {
   open: boolean;
@@ -19,6 +22,7 @@ interface TransferConfirmDialogProps {
   destinationPath: string;
   onConfirm: () => void;
   isLoading?: boolean;
+  language?: Language;
 }
 
 export function TransferConfirmDialog({
@@ -29,22 +33,24 @@ export function TransferConfirmDialog({
   destinationPath,
   onConfirm,
   isLoading,
+  language = "en",
 }: TransferConfirmDialogProps) {
-  const operationLabel = operation === "copy" ? "Copy" : "Move";
-  const operationLabelLower = operation === "copy" ? "copy" : "move";
+  const t = useMemo(() => getTranslations(language), [language]);
+  const operationLabel = operation === "copy" ? t.common.copy : t.common.move;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {operationLabel} {itemCount} item{itemCount !== 1 ? "s" : ""}?
+            {interpolate(t.transferConfirm.title, { operation: operationLabel })}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2">
               <p>
-                Are you sure you want to {operationLabelLower} the selected item
-                {itemCount !== 1 ? "s" : ""} to:
+                {operation === "copy"
+                  ? interpolate(t.transferConfirm.copyingTo, { count: itemCount })
+                  : interpolate(t.transferConfirm.movingTo, { count: itemCount })}
               </p>
               <p className="font-mono text-sm bg-muted px-2 py-1 rounded break-all">
                 Media{destinationPath === "/" ? "" : destinationPath}
@@ -53,9 +59,9 @@ export function TransferConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{t.common.cancel}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? `${operationLabel}ing...` : operationLabel}
+            {isLoading ? t.transferConfirm.processing : operationLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

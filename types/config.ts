@@ -1,9 +1,15 @@
 // Application configuration types
 
-export type Language = "en" | "it";
+export type Language = "en" | "it" | "de";
 
 // Metadata provider options
 export type MetadataProvider = "tvdb" | "tmdb";
+
+// TVDB Episode ordering options
+// default = Aired Order (when episodes first aired on TV)
+// official = DVD Order (order used on DVD releases)
+// absolute = Absolute Order (continuous numbering, common for anime)
+export type EpisodeOrder = "default" | "official" | "absolute";
 
 // Movie folder structure options
 export type MovieFolderStructure = "year" | "name" | "none";
@@ -151,6 +157,11 @@ export const localization = {
     season: "Stagione",
     specials: "Speciali",
     episode: "Episodio",
+  },
+  de: {
+    season: "Staffel",
+    specials: "Specials",
+    episode: "Episode",
   },
 } as const;
 

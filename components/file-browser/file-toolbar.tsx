@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Copy, Scissors, Trash2, FolderPlus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getTranslations } from "@/lib/translations";
 import type { PaneType } from "@/types/files";
+import type { Language } from "@/types/config";
 
 interface FileToolbarProps {
   pane: PaneType;
@@ -19,6 +22,7 @@ interface FileToolbarProps {
   onDelete: () => void;
   onCreateFolder?: () => void;
   onRefresh: () => void;
+  language?: Language;
 }
 
 export function FileToolbar({
@@ -30,7 +34,9 @@ export function FileToolbar({
   onDelete,
   onCreateFolder,
   onRefresh,
+  language = "en",
 }: FileToolbarProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const hasSelection = selectedCount > 0;
 
   return (
@@ -48,10 +54,10 @@ export function FileToolbar({
                   className="h-10 px-3 sm:h-8 sm:px-2"
                 >
                   <Copy className="h-5 w-5 sm:h-4 sm:w-4" />
-                  <span className="ml-1 hidden sm:inline">Copy</span>
+                  <span className="ml-1 hidden sm:inline">{t.toolbar.copy}</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Copy to Media</TooltipContent>
+              <TooltipContent>{t.toolbar.copyToMedia}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -63,10 +69,10 @@ export function FileToolbar({
                   className="h-10 px-3 sm:h-8 sm:px-2"
                 >
                   <Scissors className="h-5 w-5 sm:h-4 sm:w-4" />
-                  <span className="ml-1 hidden sm:inline">Move</span>
+                  <span className="ml-1 hidden sm:inline">{t.toolbar.move}</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Move to Media</TooltipContent>
+              <TooltipContent>{t.toolbar.moveToMedia}</TooltipContent>
             </Tooltip>
           </>
         )}
@@ -81,10 +87,10 @@ export function FileToolbar({
                 className="h-10 px-3 sm:h-8 sm:px-2"
               >
                 <FolderPlus className="h-5 w-5 sm:h-4 sm:w-4" />
-                <span className="ml-1 hidden sm:inline">New Folder</span>
+                <span className="ml-1 hidden sm:inline">{t.toolbar.newFolder}</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Create new folder</TooltipContent>
+            <TooltipContent>{t.toolbar.createNewFolder}</TooltipContent>
           </Tooltip>
         )}
         <Tooltip>
@@ -97,10 +103,10 @@ export function FileToolbar({
               className="h-10 px-3 sm:h-8 sm:px-2"
             >
               <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
-              <span className="ml-1 hidden sm:inline">Delete</span>
+              <span className="ml-1 hidden sm:inline">{t.toolbar.delete}</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Delete selected</TooltipContent>
+          <TooltipContent>{t.toolbar.deleteSelected}</TooltipContent>
         </Tooltip>
         <div className="flex-1" />
         <Tooltip>
@@ -115,11 +121,11 @@ export function FileToolbar({
               <RefreshCw className={`h-5 w-5 sm:h-4 sm:w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Refresh</TooltipContent>
+          <TooltipContent>{t.toolbar.refresh}</TooltipContent>
         </Tooltip>
         {hasSelection && (
           <span className="text-sm sm:text-xs text-muted-foreground ml-2">
-            {selectedCount} selected
+            {selectedCount} {t.common.selected}
           </span>
         )}
       </div>

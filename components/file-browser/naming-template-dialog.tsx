@@ -27,6 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getTranslations, interpolate } from "@/lib/translations";
 import type {
   Language,
   SeriesNamingTemplate,
@@ -219,6 +220,8 @@ export function NamingTemplateDialog({
   const [activeTab, setActiveTab] = useState<"series" | "movies">(
     folderType || "series"
   );
+  // Get translations
+  const t = useMemo(() => getTranslations(language), [language]);
 
   // Reset local state when dialog opens
   useEffect(() => {
@@ -281,20 +284,12 @@ export function NamingTemplateDialog({
   };
 
   const title = folderName
-    ? language === "it"
-      ? `Template di denominazione - ${folderName}`
-      : `Naming Template - ${folderName}`
-    : language === "it"
-      ? "Template di denominazione"
-      : "Naming Templates";
+    ? interpolate(t.namingTemplate.folderTitle, { folderName })
+    : t.namingTemplate.title;
 
   const description = folderName
-    ? language === "it"
-      ? "Configura come vengono rinominati i file per questa cartella"
-      : "Configure how files are renamed for this folder"
-    : language === "it"
-      ? "Configura i pattern di denominazione per serie TV e film"
-      : "Configure naming patterns for TV series and movies";
+    ? t.namingTemplate.folderDescription
+    : t.namingTemplate.description;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -313,10 +308,10 @@ export function NamingTemplateDialog({
             {!folderType && (
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="series">
-                  {language === "it" ? "Serie TV" : "TV Series"}
+                  {t.namingTemplate.seriesTemplates}
                 </TabsTrigger>
                 <TabsTrigger value="movies">
-                  {language === "it" ? "Film" : "Movies"}
+                  {t.namingTemplate.movieTemplates}
                 </TabsTrigger>
               </TabsList>
             )}
@@ -327,16 +322,14 @@ export function NamingTemplateDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">
-                    {language === "it" ? "Token disponibili" : "Available Tokens"}
+                    {t.namingTemplate.availableTokens}
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
-                      {language === "it"
-                        ? "Clicca su un token per copiarlo. Usa questi token nei template per inserire informazioni dinamiche."
-                        : "Click a token to copy it. Use these tokens in templates to insert dynamic information."}
+                      Click a token to copy it
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -355,7 +348,7 @@ export function NamingTemplateDialog({
                       <TooltipContent>
                         <p className="font-medium">{description}</p>
                         <p className="text-xs text-muted-foreground">
-                          {language === "it" ? "Esempio:" : "Example:"} {example}
+                          {example}
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -366,7 +359,7 @@ export function NamingTemplateDialog({
               {/* Series Folder Template */}
               <div className="space-y-2">
                 <Label htmlFor="series-folder">
-                  {language === "it" ? "Cartella serie" : "Series Folder"}
+                  {t.namingTemplate.folderTemplate}
                 </Label>
                 <Input
                   id="series-folder"
@@ -385,7 +378,7 @@ export function NamingTemplateDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="season-folder">
-                    {language === "it" ? "Cartella stagione" : "Season Folder"}
+                    {t.namingTemplate.seasonFolderTemplate}
                   </Label>
                   <Input
                     id="season-folder"
@@ -401,7 +394,7 @@ export function NamingTemplateDialog({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="specials-folder">
-                    {language === "it" ? "Cartella speciali" : "Specials Folder"}
+                    {t.namingTemplate.specialsFolderTemplate}
                   </Label>
                   <Input
                     id="specials-folder"
@@ -420,7 +413,7 @@ export function NamingTemplateDialog({
               {/* File Template */}
               <div className="space-y-2">
                 <Label htmlFor="series-file">
-                  {language === "it" ? "Nome file" : "Filename"}
+                  {t.namingTemplate.fileTemplate}
                 </Label>
                 <Input
                   id="series-file"
@@ -433,18 +426,13 @@ export function NamingTemplateDialog({
                   }
                   placeholder="{seriesName} - S{season}E{episode} - {episodeTitle}"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {language === "it"
-                    ? "L'estensione viene aggiunta automaticamente"
-                    : "Extension is added automatically"}
-                </p>
               </div>
 
               {/* Padding Settings */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="season-padding">
-                    {language === "it" ? "Cifre stagione" : "Season Digits"}
+                    {t.namingTemplate.seasonPadding}
                   </Label>
                   <Select
                     value={seriesTemplate.seasonPadding.toString()}
@@ -467,7 +455,7 @@ export function NamingTemplateDialog({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="episode-padding">
-                    {language === "it" ? "Cifre episodio" : "Episode Digits"}
+                    {t.namingTemplate.episodePadding}
                   </Label>
                   <Select
                     value={seriesTemplate.episodePadding.toString()}
@@ -494,7 +482,7 @@ export function NamingTemplateDialog({
               {/* Preview */}
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm font-medium">
-                  {language === "it" ? "Anteprima" : "Preview"}
+                  {t.namingTemplate.preview}
                 </Label>
                 <div className="bg-muted rounded-md p-3 font-mono text-xs break-all">
                   <span className="text-muted-foreground">
@@ -513,7 +501,7 @@ export function NamingTemplateDialog({
                   className="gap-1.5"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  {language === "it" ? "Ripristina predefiniti" : "Reset to Default"}
+                  {t.namingTemplate.resetToDefault}
                 </Button>
               </div>
             </TabsContent>
@@ -524,16 +512,14 @@ export function NamingTemplateDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">
-                    {language === "it" ? "Token disponibili" : "Available Tokens"}
+                    {t.namingTemplate.availableTokens}
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
-                      {language === "it"
-                        ? "Clicca su un token per copiarlo. Usa questi token nei template per inserire informazioni dinamiche."
-                        : "Click a token to copy it. Use these tokens in templates to insert dynamic information."}
+                      Click a token to copy it
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -552,7 +538,7 @@ export function NamingTemplateDialog({
                       <TooltipContent>
                         <p className="font-medium">{description}</p>
                         <p className="text-xs text-muted-foreground">
-                          {language === "it" ? "Esempio:" : "Example:"} {example}
+                          {example}
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -563,7 +549,7 @@ export function NamingTemplateDialog({
               {/* Folder Structure */}
               <div className="space-y-2">
                 <Label htmlFor="movie-folder-structure">
-                  {language === "it" ? "Struttura cartelle" : "Folder Structure"}
+                  {t.namingTemplate.folderStructure}
                 </Label>
                 <Select
                   value={movieTemplate.folderStructure}
@@ -579,22 +565,13 @@ export function NamingTemplateDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="name">
-                      {language === "it" ? "Cartella per film" : "Folder per movie"}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (Film/Nome Film/file.mkv)
-                      </span>
+                      {t.namingTemplate.folderStructureName}
                     </SelectItem>
                     <SelectItem value="year">
-                      {language === "it" ? "Cartella per anno" : "Folder per year"}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (Film/2024/file.mkv)
-                      </span>
+                      {t.namingTemplate.folderStructureYear}
                     </SelectItem>
                     <SelectItem value="none">
-                      {language === "it" ? "Nessuna sottocartella" : "No subfolder"}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (Film/file.mkv)
-                      </span>
+                      {t.namingTemplate.folderStructureNone}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -604,7 +581,7 @@ export function NamingTemplateDialog({
               {movieTemplate.folderStructure === "name" && (
                 <div className="space-y-2">
                   <Label htmlFor="movie-folder">
-                    {language === "it" ? "Cartella film" : "Movie Folder"}
+                    {t.namingTemplate.folderTemplate}
                   </Label>
                   <Input
                     id="movie-folder"
@@ -617,18 +594,13 @@ export function NamingTemplateDialog({
                     }
                     placeholder="{movieName} ({year})"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {language === "it"
-                      ? "Sottocartella all'interno della cartella base"
-                      : "Subfolder within the base folder"}
-                  </p>
                 </div>
               )}
 
               {/* File Template */}
               <div className="space-y-2">
                 <Label htmlFor="movie-file">
-                  {language === "it" ? "Nome file" : "Filename"}
+                  {t.namingTemplate.fileTemplate}
                 </Label>
                 <Input
                   id="movie-file"
@@ -641,17 +613,12 @@ export function NamingTemplateDialog({
                   }
                   placeholder="{movieName} ({year})"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {language === "it"
-                    ? "L'estensione viene aggiunta automaticamente"
-                    : "Extension is added automatically"}
-                </p>
               </div>
 
               {/* Preview */}
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm font-medium">
-                  {language === "it" ? "Anteprima" : "Preview"}
+                  {t.namingTemplate.preview}
                 </Label>
                 <div className="bg-muted rounded-md p-3 font-mono text-xs break-all">
                   <span className="text-muted-foreground">
@@ -670,7 +637,7 @@ export function NamingTemplateDialog({
                   className="gap-1.5"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  {language === "it" ? "Ripristina predefiniti" : "Reset to Default"}
+                  {t.namingTemplate.resetToDefault}
                 </Button>
               </div>
             </TabsContent>
@@ -687,14 +654,14 @@ export function NamingTemplateDialog({
               }}
               className="mr-auto"
             >
-              {language === "it" ? "Usa globale" : "Use Global"}
+              {t.namingTemplate.usingGlobal}
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {language === "it" ? "Annulla" : "Cancel"}
+            {t.common.cancel}
           </Button>
           <Button onClick={handleSave}>
-            {language === "it" ? "Salva" : "Save"}
+            {t.common.save}
           </Button>
         </DialogFooter>
       </DialogContent>

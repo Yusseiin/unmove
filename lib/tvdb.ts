@@ -6,6 +6,7 @@ import type {
   TVDBEpisode,
   TVDBTranslationResponse,
 } from "@/types/tvdb";
+import type { EpisodeOrder } from "@/types/config";
 
 const TVDB_BASE_URL = "https://api4.thetvdb.com/v4";
 
@@ -185,12 +186,14 @@ export async function searchTVDB(
 
   // Determine preferred translation language
   const preferItalian = lang === "it";
+  const preferGerman = lang === "de";
 
   // For results, get translations based on language setting
   // Always include English name for matching (filenames are often in English)
   const enhancedResults = await Promise.all(
     results.map(async (result) => {
       const italianName = result.translations?.ita;
+      const germanName = result.translations?.deu;
       let englishName = result.translations?.eng;
 
       // If the name contains non-Latin characters, try to get English translation
@@ -221,6 +224,12 @@ export async function searchTVDB(
           name_translated: italianName,
           name_english: englishName || undefined,
         };
+      } else if (preferGerman && germanName && germanName !== result.name) {
+        return {
+          ...result,
+          name_translated: germanName,
+          name_english: englishName || undefined,
+        };
       } else if (englishName && englishName !== result.name) {
         return {
           ...result,
@@ -241,10 +250,14 @@ export async function searchTVDB(
 
 /**
  * Get episodes for a series
+ * @param seriesId - TVDB series ID
+ * @param season - Optional season number filter
+ * @param order - Episode ordering: "default" (Aired), "official" (DVD), "absolute" (Absolute)
  */
 export async function getSeriesEpisodes(
   seriesId: string | number,
-  season?: number
+  season?: number,
+  order: EpisodeOrder = "default"
 ): Promise<TVDBEpisode[]> {
   // Extract numeric ID if format is "series-12345" or "movie-12345"
   const numericId = typeof seriesId === "string"
@@ -261,8 +274,10 @@ export async function getSeriesEpisodes(
       params.set("season", season.toString());
     }
 
+    // Use the specified episode ordering
+    // TVDB API supports: default (aired), official (DVD), absolute, regional, alternate
     const response = await tvdbFetch<TVDBSeriesEpisodesResponse>(
-      `/series/${numericId}/episodes/default?${params.toString()}`
+      `/series/${numericId}/episodes/${order}?${params.toString()}`
     );
 
     if (response.data?.episodes) {
@@ -353,6 +368,33 @@ export async function fetchEnglishTranslations(
       const translation = translations[j];
       if (translation && !containsNonLatinCharacters(translation)) {
         result[idx] = { ...result[idx], nameEnglish: translation };
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Fetch German translations for a batch of episodes
+ * Uses parallel requests with a concurrency limit to avoid overwhelming the API
+ */
+export async function fetchGermanTranslations(
+  episodes: TVDBEpisode[]
+): Promise<TVDBEpisode[]> {
+  const BATCH_SIZE = 5; // Process 5 episodes at a time
+  const result: TVDBEpisode[] = [...episodes];
+
+  for (let i = 0; i < episodes.length; i += BATCH_SIZE) {
+    const batch = episodes.slice(i, i + BATCH_SIZE);
+    const translations = await Promise.all(
+      batch.map(ep => getEpisodeTranslation(ep.id, "deu"))
+    );
+
+    for (let j = 0; j < batch.length; j++) {
+      const idx = i + j;
+      if (translations[j]) {
+        result[idx] = { ...result[idx], nameGerman: translations[j]! };
       }
     }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getTranslations } from "@/lib/translations";
+import type { Language } from "@/types/config";
 
 interface CreateFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (name: string) => void;
   isLoading?: boolean;
+  language?: Language;
 }
 
 export function CreateFolderDialog({
@@ -25,9 +28,11 @@ export function CreateFolderDialog({
   onOpenChange,
   onSubmit,
   isLoading,
+  language = "en",
 }: CreateFolderDialogProps) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const t = useMemo(() => getTranslations(language), [language]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,14 +67,14 @@ export function CreateFolderDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogTitle>{t.createFolder.title}</DialogTitle>
             <DialogDescription>
-              Enter a name for the new folder.
+              {t.createFolder.description}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="folder-name" className="sr-only">
-              Folder name
+              {t.createFolder.folderName}
             </Label>
             <Input
               id="folder-name"
@@ -78,7 +83,7 @@ export function CreateFolderDialog({
                 setName(e.target.value);
                 setError("");
               }}
-              placeholder="New Folder"
+              placeholder={t.createFolder.placeholder}
               autoFocus
               disabled={isLoading}
             />
@@ -91,10 +96,10 @@ export function CreateFolderDialog({
               onClick={() => handleOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create"}
+              {isLoading ? t.createFolder.creating : t.common.confirm}
             </Button>
           </DialogFooter>
         </form>

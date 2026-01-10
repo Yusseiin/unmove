@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronRight, Folder, FolderPlus, Home, ArrowLeft } from "lucide-react";
 import {
   Dialog,
@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getTranslations, interpolate } from "@/lib/translations";
 import type { FileEntry, ListFilesResponse } from "@/types/files";
+import type { Language } from "@/types/config";
 
 interface DestinationPickerProps {
   open: boolean;
@@ -22,7 +24,8 @@ interface DestinationPickerProps {
   onConfirm: (destinationPath: string) => void;
   onCreateFolder: (parentPath: string) => void;
   isLoading?: boolean;
-  initialPath?: string; // Initial path to open the picker at (e.g., current media folder)
+  initialPath?: string;
+  language?: Language;
 }
 
 export function DestinationPicker({
@@ -34,7 +37,9 @@ export function DestinationPicker({
   onCreateFolder,
   isLoading,
   initialPath = "/",
+  language = "en",
 }: DestinationPickerProps) {
+  const t = useMemo(() => getTranslations(language), [language]);
   const [currentPath, setCurrentPath] = useState("/");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -54,16 +59,16 @@ export function DestinationPicker({
         setEntries(data.data.entries.filter((e) => e.type === "directory"));
         setCurrentPath(data.data.path);
       } else {
-        setError(data.error || "Failed to load folders");
+        setError(data.error || t.destinationPicker.failedToLoad);
         setEntries([]);
       }
     } catch {
-      setError("Failed to connect to server");
+      setError(t.destinationPicker.failedToConnect);
       setEntries([]);
     } finally {
       setIsFetching(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (open) {
@@ -93,11 +98,12 @@ export function DestinationPicker({
       <DialogContent className="sm:max-w-md max-h-[85dvh] flex flex-col p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <DialogTitle className="text-base sm:text-lg">
-            {operation === "copy" ? "Copy" : "Move"} {selectedCount} item
-            {selectedCount !== 1 ? "s" : ""}
+            {operation === "copy"
+              ? interpolate(t.destinationPicker.titleCopy, { count: selectedCount })
+              : interpolate(t.destinationPicker.titleMove, { count: selectedCount })}
           </DialogTitle>
           <DialogDescription className="text-sm">
-            Select a destination folder in Media.
+            {t.destinationPicker.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -107,7 +113,7 @@ export function DestinationPicker({
             className="flex items-center gap-1 hover:text-foreground transition-colors shrink-0"
           >
             <Home className="h-3 w-3" />
-            <span>Media</span>
+            <span>{t.fileBrowser.media}</span>
           </button>
           {pathSegments.map((segment, index) => (
             <span key={index} className="flex items-center gap-1 shrink-0">
@@ -131,7 +137,7 @@ export function DestinationPicker({
               className="w-full flex items-center gap-2 p-2 hover:bg-accent transition-colors border-b shrink-0"
             >
               <ArrowLeft className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs sm:text-sm">Go back</span>
+              <span className="text-xs sm:text-sm">{t.destinationPicker.goBack}</span>
             </button>
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -150,7 +156,7 @@ export function DestinationPicker({
               </div>
             ) : entries.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm p-4">
-                No subfolders
+                {t.destinationPicker.noSubfolders}
               </div>
             ) : (
               <div className="p-1">
@@ -179,7 +185,7 @@ export function DestinationPicker({
             className="w-full sm:w-auto text-xs sm:text-sm"
           >
             <FolderPlus className="h-4 w-4 mr-1" />
-            New Folder
+            {t.destinationPicker.newFolder}
           </Button>
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
@@ -189,7 +195,7 @@ export function DestinationPicker({
               disabled={isLoading}
               className="flex-1 sm:flex-none text-xs sm:text-sm"
             >
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               size="sm"
@@ -199,9 +205,11 @@ export function DestinationPicker({
             >
               {isLoading
                 ? operation === "copy"
-                  ? "Copying..."
-                  : "Moving..."
-                : `${operation === "copy" ? "Copy" : "Move"} Here`}
+                  ? `${t.common.copying}...`
+                  : `${t.common.moving}...`
+                : operation === "copy"
+                  ? t.destinationPicker.copyHere
+                  : t.destinationPicker.moveHere}
             </Button>
           </div>
         </DialogFooter>

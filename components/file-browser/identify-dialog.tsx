@@ -44,6 +44,7 @@ import {
   findAutoMatch,
   getDisplayName,
 } from "@/lib/matching-utils";
+import { getTranslations, interpolate } from "@/lib/translations";
 import type {
   TVDBSearchResult,
   TVDBEpisode,
@@ -56,8 +57,8 @@ import type {
   BaseFolder,
   SeriesNamingTemplate,
   MovieNamingTemplate,
+  EpisodeOrder,
 } from "@/types/config";
-import { getLocalizedStrings } from "@/types/config";
 
 // Helper function to format bytes as human-readable string
 function formatBytes(bytes: number): string {
@@ -147,8 +148,8 @@ export function IdentifyDialog({
   // Build parse options from config values
   const parseOptions = { qualityValues, codecValues, extraTagValues };
   const isMobile = useIsMobile();
-  // Get localized strings based on language
-  const strings = getLocalizedStrings(language);
+  // Get translations
+  const t = useMemo(() => getTranslations(language), [language]);
   // Scanning state
   const [isScanning, setIsScanning] = useState(false);
   const [scannedFiles, setScannedFiles] = useState<ScannedFile[]>([]);
@@ -213,6 +214,9 @@ export function IdentifyDialog({
 
   // Metadata provider (TVDB or TMDB)
   const [activeProvider, setActiveProvider] = useState<MetadataProvider>(defaultProvider);
+
+  // Episode order for TVDB (Aired, DVD, Absolute)
+  const [episodeOrder, setEpisodeOrder] = useState<EpisodeOrder>("default");
 
   // Sync activeProvider and mediaTypeFilter with defaults when dialog opens
   useEffect(() => {
@@ -294,11 +298,15 @@ export function IdentifyDialog({
   // Existing files check state
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
 
-  // Get the display name for an episode (prefer English translation over original name)
+  // Get the display name for an episode (prefer translation over original name)
   const getEpisodeDisplayName = (episode: TVDBEpisode): string => {
     // For Italian language, prefer Italian > English > original
     if (language === "it") {
       return episode.nameItalian || episode.nameEnglish || episode.name;
+    }
+    // For German language, prefer German > English > original
+    if (language === "de") {
+      return episode.nameGerman || episode.nameEnglish || episode.name;
     }
     // For English, prefer English translation if original is non-Latin
     return episode.nameEnglish || episode.name;
@@ -338,7 +346,7 @@ export function IdentifyDialog({
   // Fetch episodes when series is selected, or create movie mapping
   useEffect(() => {
     if (selectedResult?.type === "series") {
-      fetchEpisodes(selectedResult.id);
+      fetchEpisodes(selectedResult.id, episodeOrder);
     } else if (selectedResult?.type === "movie") {
       // For movies, create simple mapping (just rename, no folder structure)
       createMovieMapping();
@@ -348,7 +356,7 @@ export function IdentifyDialog({
     }
     // Reset base folder selection when result changes
     setSelectedBaseFolder("");
-  }, [selectedResult]);
+  }, [selectedResult, episodeOrder]);
 
   // Map files to episodes when episodes are loaded
   useEffect(() => {
@@ -574,15 +582,17 @@ export function IdentifyDialog({
     }
   };
 
-  const fetchEpisodes = async (seriesId: string) => {
+  const fetchEpisodes = async (seriesId: string, order: EpisodeOrder = "default") => {
     setIsLoadingEpisodes(true);
 
     try {
       // Fetch episodes, with Italian translations only if language is Italian
-      const langParam = language === "it" ? "&lang=it" : "";
+      const langParam = language === "it" ? "&lang=it" : language === "de" ? "&lang=de" : "";
       // Use the active provider's episodes endpoint
       const episodesEndpoint = activeProvider === "tmdb" ? "/api/tmdb/episodes" : "/api/tvdb/episodes";
-      const response = await fetch(`${episodesEndpoint}?seriesId=${seriesId}${langParam}`);
+      // Add order parameter for TVDB
+      const orderParam = activeProvider === "tvdb" ? `&order=${order}` : "";
+      const response = await fetch(`${episodesEndpoint}?seriesId=${seriesId}${langParam}${orderParam}`);
       const data: TVDBApiResponse<TVDBEpisode[]> = await response.json();
 
       if (data.success && data.data) {
@@ -1287,13 +1297,13 @@ export function IdentifyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${dialogWidth} ${dialogHeight} max-h-[90dvh] flex flex-col p-4 sm:p-6`}>
         <DialogHeader className="shrink-0">
-          <DialogTitle>Identify Media</DialogTitle>
+          <DialogTitle>{t.identify.title}</DialogTitle>
           <DialogDescription className="text-sm">
             {isScanning
-              ? "Scanning files..."
+              ? t.identify.scanningFiles
               : scannedFiles.length > 0
-                ? `Found ${scannedFiles.length} video file${scannedFiles.length !== 1 ? "s" : ""}`
-                : `Search ${activeProvider.toUpperCase()} to identify and rename files`
+                ? interpolate(t.identify.foundFiles, { count: scannedFiles.length })
+                : interpolate(t.identify.searchProvider, { provider: activeProvider.toUpperCase() })
             }
           </DialogDescription>
         </DialogHeader>
@@ -1305,7 +1315,7 @@ export function IdentifyDialog({
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-muted-foreground">
-                  {operation === "copy" ? (language === "it" ? "Copiando" : "Copying") : operation === "move" ? (language === "it" ? "Spostando" : "Moving") : (language === "it" ? "Rinominando" : "Renaming")}...
+                  {operation === "copy" ? t.identify.copyingFiles : operation === "move" ? t.identify.movingFiles : t.identify.renamingFiles}
                 </span>
               </div>
               <span className="font-medium">
@@ -1333,7 +1343,7 @@ export function IdentifyDialog({
             )}
             {progress.failed > 0 && (
               <p className="text-xs text-destructive">
-                {progress.failed} {language === "it" ? "falliti" : "failed"}
+                {progress.failed} {t.common.failed}
               </p>
             )}
           </div>
@@ -1357,69 +1367,76 @@ export function IdentifyDialog({
             </div>
           )}
 
-          {/* Media type info - show when multiple files are scanned */}
-          {!isScanning && scannedFiles.length > 1 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    {language === "it" ? "Episodi Serie TV" : "TV Series Episodes"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "it"
-                      ? "Cerca una serie e abbina ogni file a un episodio"
-                      : "Search for a series and match each file to an episode"}
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {language === "it"
-                  ? "Per rinominare film separati, usa \"Identifica Film Separatamente\" dal menu precedente."
-                  : "To rename separate movies, use \"Identify Movies Separately\" from the previous menu."}
-              </p>
-            </div>
-          )}
-
           {/* Search input */}
           {!isScanning && scannedFiles.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">
-                  {language === "it" ? "Cerca" : "Search"} {activeProvider.toUpperCase()}
+                  {t.common.search} {activeProvider.toUpperCase()}
                 </label>
-                <div className="flex rounded-md border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeProvider !== "tvdb") {
-                        setActiveProvider("tvdb");
-                        setProviderManuallyChanged(true);
-                      }
-                    }}
-                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
-                      activeProvider === "tvdb"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background hover:bg-muted"
-                    }`}
-                  >
-                    TVDB
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeProvider !== "tmdb") {
-                        setActiveProvider("tmdb");
-                        setProviderManuallyChanged(true);
-                      }
-                    }}
-                    className={`px-2 py-0.5 text-xs font-medium transition-colors ${
-                      activeProvider === "tmdb"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background hover:bg-muted"
-                    }`}
-                  >
-                    TMDB
-                  </button>
+                <div className="flex items-center gap-2">
+                  {/* Episode order selector - only for TVDB series */}
+                  {activeProvider === "tvdb" && (scannedFiles.length > 1 || mediaTypeFilter === "series") && (
+                    <Select
+                      value={episodeOrder}
+                      onValueChange={(value) => setEpisodeOrder(value as EpisodeOrder)}
+                    >
+                      <SelectTrigger className="h-6 text-xs w-auto min-w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          <div className="flex flex-col items-start">
+                            <span>{t.identify.orderAired}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="official">
+                          <div className="flex flex-col items-start">
+                            <span>{t.identify.orderDVD}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="absolute">
+                          <div className="flex flex-col items-start">
+                            <span>{t.identify.orderAbsolute}</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <div className="flex rounded-md border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeProvider !== "tvdb") {
+                          setActiveProvider("tvdb");
+                          setProviderManuallyChanged(true);
+                        }
+                      }}
+                      className={`px-2 py-0.5 text-xs font-medium transition-colors ${
+                        activeProvider === "tvdb"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      TVDB
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeProvider !== "tmdb") {
+                          setActiveProvider("tmdb");
+                          setProviderManuallyChanged(true);
+                        }
+                      }}
+                      className={`px-2 py-0.5 text-xs font-medium transition-colors ${
+                        activeProvider === "tmdb"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      TMDB
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -1427,8 +1444,8 @@ export function IdentifyDialog({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={scannedFiles.length > 1
-                    ? (language === "it" ? "Cerca serie TV..." : "Search for TV series...")
-                    : (language === "it" ? "Cerca serie o film..." : "Search for show or movie...")}
+                    ? t.identify.searchSeries
+                    : t.identify.searchSeriesOrMovie}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchQuery.trim()) {
                       // For multiple files, filter to series only
@@ -1443,7 +1460,7 @@ export function IdentifyDialog({
                     const value = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setSearchYear(value);
                   }}
-                  placeholder={language === "it" ? "Anno" : "Year"}
+                  placeholder={t.common.year}
                   className="w-20"
                   maxLength={4}
                   onKeyDown={(e) => {
@@ -1473,18 +1490,18 @@ export function IdentifyDialog({
           {/* Search results */}
           {!isScanning && searchQuery && (
             <div className="space-y-1">
-              <label className="text-sm font-medium">Results</label>
+              <label className="text-sm font-medium">{t.common.results}</label>
               <div className="border rounded-md max-h-32 overflow-y-auto">
                 {isSearching ? (
                   <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="text-sm">{language === "it" ? "Ricerca in corso..." : `Searching ${activeProvider.toUpperCase()}...`}</span>
+                    <span className="text-sm">{interpolate(t.identify.searchingProvider, { provider: activeProvider.toUpperCase() })}</span>
                   </div>
                 ) : searchError ? (
                   <div className="p-3 text-sm text-destructive">{searchError}</div>
                 ) : searchResults.length === 0 ? (
                   <div className="p-3 text-sm text-muted-foreground">
-                    No results found
+                    {t.common.noResultsFound}
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -1545,7 +1562,7 @@ export function IdentifyDialog({
           {isLoadingEpisodes && (
             <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground border rounded-md">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm">{language === "it" ? "Caricamento episodi..." : "Loading episodes..."}</span>
+              <span className="text-sm">{t.identify.loadingEpisodes}</span>
             </div>
           )}
 
@@ -1553,7 +1570,7 @@ export function IdentifyDialog({
           {selectedResult && !isLoadingEpisodes && operation !== "rename" && (
             <div className="space-y-1">
               <label className="text-sm font-medium">
-                {language === "it" ? "Cartella di destinazione" : "Destination Folder"}
+                {t.identify.destinationFolder}
               </label>
               <Select
                 value={selectedBaseFolder}
@@ -1562,11 +1579,11 @@ export function IdentifyDialog({
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={language === "it" ? "Seleziona cartella..." : "Select folder..."} />
+                  <SelectValue placeholder={t.identify.selectFolder} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">
-                    {language === "it" ? "(Radice Media)" : "(Media Root)"}
+                    {t.identify.mediaRoot}
                   </SelectItem>
                   {(selectedResult.type === "series" ? seriesBaseFolders : moviesBaseFolders).map((folder) => (
                     <SelectItem key={folder.name} value={folder.name}>
@@ -1577,7 +1594,7 @@ export function IdentifyDialog({
               </Select>
               {selectedResult && (
                 <p className="text-xs text-muted-foreground">
-                  {language === "it" ? "Destinazione:" : "Destination:"}{" "}
+                  {t.identify.destination}{" "}
                   {selectedBaseFolder ? `${selectedBaseFolder}/` : ""}
                   {selectedResult.type === "series" ? (
                     <>
@@ -1624,7 +1641,7 @@ export function IdentifyDialog({
 
           {/* Rename options - FFprobe checkbox for all, folder options for series */}
           {operation === "rename" && scannedFiles.length > 0 && (
-            <div className="space-y-2 py-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="use-ffprobe"
@@ -1635,7 +1652,7 @@ export function IdentifyDialog({
                   htmlFor="use-ffprobe"
                   className="text-sm cursor-pointer select-none"
                 >
-                  {language === "it" ? "Usa FFprobe per qualità/codec" : "Use FFprobe for quality/codec"}
+                  {t.identify.useFFprobeForQuality}
                 </label>
               </div>
               {selectedResult?.type === "series" && (
@@ -1650,7 +1667,7 @@ export function IdentifyDialog({
                       htmlFor="rename-season-folders"
                       className="text-sm cursor-pointer select-none"
                     >
-                      {language === "it" ? "Rinomina/crea cartelle stagione" : "Rename/create season folders"}
+                      {t.identify.renameSeasonFolders}
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1663,7 +1680,7 @@ export function IdentifyDialog({
                       htmlFor="rename-main-folder"
                       className="text-sm cursor-pointer select-none"
                     >
-                      {language === "it" ? "Rinomina/crea cartella principale" : "Rename/create main folder"}
+                      {t.identify.renameMainFolder}
                     </label>
                   </div>
                 </>
@@ -1675,15 +1692,15 @@ export function IdentifyDialog({
           {hasFilesToShow && selectedResult && (
             <div className="space-y-2 sm:flex sm:flex-col sm:flex-1 sm:min-h-0">
               <label className="text-sm font-medium shrink-0">
-                File Mappings ({fileMappings.length} files)
+                {t.identify.fileMappings} ({fileMappings.length} {t.common.files})
                 {skippedMappings.length > 0 && (
-                  <span className="text-muted-foreground font-normal"> · {skippedMappings.length} skipped</span>
+                  <span className="text-muted-foreground font-normal"> · {skippedMappings.length} {t.common.skipped}</span>
                 )}
                 {errorMappings.length > 0 && (
-                  <span className="text-amber-600 dark:text-amber-400 font-normal"> · {errorMappings.length} need attention</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-normal"> · {errorMappings.length} {t.identify.needAttention}</span>
                 )}
               </label>
-              <ScrollArea className="h-72 sm:flex-1 sm:min-h-0 border rounded-md">
+              <ScrollArea className="h-[28rem] sm:flex-1 sm:min-h-0 border rounded-md">
                 <div>
                   {sortedSeasons.map((season) => {
                     const seasonMappings = mappingsBySeason[season];
@@ -1693,10 +1710,10 @@ export function IdentifyDialog({
                     const seasonSkippedCount = seasonMappings.filter(({ mapping: m }) => m.skipped).length;
                     const seasonExistsCount = seasonMappings.filter(({ mapping: m }) => m.existsAtDestination && !m.overwrite && !m.skipped).length;
                     const seasonLabel = season === -1
-                      ? "Unknown Season"
+                      ? t.naming.unknownSeason
                       : season === 0
-                        ? strings.specials
-                        : `${strings.season} ${season}`;
+                        ? t.naming.specials
+                        : `${t.naming.season} ${season}`;
 
                     return (
                       <div key={season} className="border-b last:border-b-0">
@@ -1790,7 +1807,7 @@ export function IdentifyDialog({
                                         </Tooltip>
                                       )}
                                       {isSkipped ? (
-                                        <p className="text-xs text-muted-foreground">Skipped</p>
+                                        <p className="text-xs text-muted-foreground">{t.common.skipped}</p>
                                       ) : hasError ? (
                                         <p className="text-xs text-amber-600 dark:text-amber-400 truncate">{m.error}</p>
                                       ) : isValid && m.episode ? (
@@ -1818,7 +1835,7 @@ export function IdentifyDialog({
                                           {existsAtDest && (
                                             <div className="flex items-center gap-2 mt-1">
                                               <span className="text-xs text-amber-600 dark:text-amber-400">
-                                                File already exists
+                                                {t.identify.fileAlreadyExists}
                                               </span>
                                               <label className="flex items-center gap-1.5 cursor-pointer">
                                                 <Checkbox
@@ -1826,7 +1843,7 @@ export function IdentifyDialog({
                                                   onCheckedChange={(checked) => toggleOverwrite(fileIndex, checked === true)}
                                                   className="h-3.5 w-3.5"
                                                 />
-                                                <span className="text-xs text-muted-foreground">Overwrite</span>
+                                                <span className="text-xs text-muted-foreground">{t.common.overwrite}</span>
                                               </label>
                                             </div>
                                           )}
@@ -1843,7 +1860,7 @@ export function IdentifyDialog({
                                             size="sm"
                                             onClick={() => unskipFile(fileIndex)}
                                           >
-                                            Unskip
+                                            {t.common.unskip}
                                           </Button>
                                         ) : (
                                           <>
@@ -1853,7 +1870,7 @@ export function IdentifyDialog({
                                               onClick={() => startEditingFile(fileIndex)}
                                             >
                                               <Pencil className="h-3 w-3 sm:mr-1" />
-                                              <span className="hidden sm:inline">{isValid ? "Change" : "Select"}</span>
+                                              <span className="hidden sm:inline">{isValid ? t.common.change : t.common.select}</span>
                                             </Button>
                                             <Button
                                               variant="ghost"
@@ -1861,7 +1878,7 @@ export function IdentifyDialog({
                                               onClick={() => skipFile(fileIndex)}
                                             >
                                               <X className="h-3 w-3 sm:mr-1" />
-                                              <span className="hidden sm:inline">Skip</span>
+                                              <span className="hidden sm:inline">{t.common.skip}</span>
                                             </Button>
                                           </>
                                         )}
@@ -1874,7 +1891,7 @@ export function IdentifyDialog({
                                     <div className="space-y-3 pt-2 pl-6">
                                       {/* Season selector */}
                                       <div className="space-y-1">
-                                        <label className="text-xs font-medium text-muted-foreground">Season</label>
+                                        <label className="text-xs font-medium text-muted-foreground">{t.naming.season}</label>
                                         <Select
                                           value={editingSeason?.toString() ?? ""}
                                           onValueChange={(val) => {
@@ -1883,12 +1900,12 @@ export function IdentifyDialog({
                                           }}
                                         >
                                           <SelectTrigger className="w-full h-10">
-                                            <SelectValue placeholder="Select season..." />
+                                            <SelectValue placeholder={t.identify.selectSeason} />
                                           </SelectTrigger>
                                           <SelectContent>
                                             {availableSeasons.map((s) => (
                                               <SelectItem key={s} value={s.toString()}>
-                                                {s === 0 ? strings.specials : `${strings.season} ${s}`}
+                                                {s === 0 ? t.naming.specials : `${t.naming.season} ${s}`}
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
@@ -1898,20 +1915,20 @@ export function IdentifyDialog({
                                       {/* Episode selector */}
                                       {editingSeason !== null && (
                                         <div className="space-y-1">
-                                          <label className="text-xs font-medium text-muted-foreground">Episode</label>
+                                          <label className="text-xs font-medium text-muted-foreground">{t.naming.episode}</label>
                                           <Select
                                             value={editingEpisode?.toString() ?? ""}
                                             onValueChange={(val) => setEditingEpisode(parseInt(val, 10))}
                                           >
                                             <SelectTrigger className="w-full h-10">
-                                              <SelectValue placeholder="Select episode..." />
+                                              <SelectValue placeholder={t.identify.selectEpisode} />
                                             </SelectTrigger>
                                             <SelectContent>
                                               {episodesForSeason.map((ep) => {
                                                 const epTitle = getEpisodeDisplayName(ep);
                                                 return (
                                                   <SelectItem key={ep.id} value={ep.number.toString()}>
-                                                    E{formatSeason(ep.number)} - {epTitle || `${strings.episode} ${ep.number}`}
+                                                    E{formatSeason(ep.number)} - {epTitle || `${t.naming.episode} ${ep.number}`}
                                                   </SelectItem>
                                                 );
                                               })}
@@ -1929,7 +1946,7 @@ export function IdentifyDialog({
                                           className="flex-1"
                                         >
                                           <X className="h-3 w-3 mr-1" />
-                                          Cancel
+                                          {t.common.cancel}
                                         </Button>
                                         <Button
                                           size="sm"
@@ -1938,7 +1955,7 @@ export function IdentifyDialog({
                                           className="flex-1"
                                         >
                                           <Check className="h-3 w-3 mr-1" />
-                                          Apply
+                                          {t.common.apply}
                                         </Button>
                                       </div>
                                     </div>
@@ -1971,9 +1988,7 @@ export function IdentifyDialog({
                 )}
                 <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>
-                  {language === "it"
-                    ? `${totalMissingEpisodes} episodi mancanti`
-                    : `${totalMissingEpisodes} missing episode${totalMissingEpisodes !== 1 ? "s" : ""}`}
+                  {interpolate(t.identify.missingEpisodes, { count: totalMissingEpisodes })}
                 </span>
               </button>
 
@@ -1985,13 +2000,13 @@ export function IdentifyDialog({
                       .map(([seasonNum, missingEps]) => {
                         const season = Number(seasonNum);
                         const seasonLabel = season === 0
-                          ? strings.specials
-                          : `${strings.season} ${season}`;
+                          ? t.naming.specials
+                          : `${t.naming.season} ${season}`;
 
                         return (
                           <div key={season}>
                             <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
-                              {seasonLabel} ({missingEps.length} {language === "it" ? "mancanti" : "missing"})
+                              {seasonLabel} ({missingEps.length} {t.identify.missing})
                             </p>
                             <div className="flex flex-wrap gap-1">
                               {missingEps.map((ep) => (
@@ -2021,7 +2036,7 @@ export function IdentifyDialog({
           {/* Movie preview (simpler, no editing needed) */}
           {selectedResult?.type === "movie" && validMappings.length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Renamed File</label>
+              <label className="text-sm font-medium">{t.identify.renamedFile}</label>
               <div className="border rounded-md p-3">
                 {isMobile ? (
                   <button
@@ -2046,7 +2061,7 @@ export function IdentifyDialog({
                   </Tooltip>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  Will be placed in the current Media folder
+                  {t.identify.willBePlacedIn}
                 </p>
               </div>
             </div>
@@ -2056,7 +2071,7 @@ export function IdentifyDialog({
           {errorMappings.length > 0 && selectedResult?.type === "series" && episodes.length === 0 && (
             <div className="space-y-1">
               <label className="text-sm font-medium text-destructive">
-                Could not match ({errorMappings.length})
+                {t.identify.couldNotMatch} ({errorMappings.length})
               </label>
               <div className="border border-destructive/30 rounded-md p-2 space-y-1 text-xs">
                 {errorMappings.map((m, i) => (
@@ -2077,7 +2092,7 @@ export function IdentifyDialog({
             <div className="space-y-2 py-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {operation === "copy" ? (language === "it" ? "Copiando" : "Copying") : operation === "move" ? (language === "it" ? "Spostando" : "Moving") : (language === "it" ? "Rinominando" : "Renaming")} {language === "it" ? "file" : "files"}...
+                  {operation === "copy" ? t.identify.copyingFiles : operation === "move" ? t.identify.movingFiles : t.identify.renamingFiles}
                 </span>
                 <span className="font-medium">
                   {progress.current} / {progress.total}
@@ -2111,7 +2126,7 @@ export function IdentifyDialog({
               )}
               {progress.failed > 0 && (
                 <p className="text-xs text-destructive">
-                  {progress.failed} {language === "it" ? "falliti" : "failed"}
+                  {progress.failed} {t.common.failed}
                 </p>
               )}
             </div>
@@ -2125,7 +2140,7 @@ export function IdentifyDialog({
             disabled={isLoading}
             className="flex-1 sm:flex-none"
           >
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -2133,8 +2148,8 @@ export function IdentifyDialog({
             className="flex-1 sm:flex-none"
           >
             {isLoading
-              ? operation === "copy" ? "Copying..." : operation === "move" ? "Moving..." : "Renaming..."
-              : `${operation === "copy" ? "Copy" : operation === "move" ? "Move" : "Rename"} ${processableMappings.length} file${processableMappings.length !== 1 ? "s" : ""}${existingNotConfirmedMappings.length > 0 ? ` (${existingNotConfirmedMappings.length} skipped)` : ""}`
+              ? operation === "copy" ? t.identify.copyingFiles : operation === "move" ? t.identify.movingFiles : t.identify.renamingFiles
+              : `${operation === "copy" ? t.common.copy : operation === "move" ? t.common.move : t.common.rename} ${processableMappings.length} ${t.common.files}${existingNotConfirmedMappings.length > 0 ? ` (${existingNotConfirmedMappings.length} ${t.common.skipped})` : ""}`
             }
           </Button>
         </DialogFooter>
