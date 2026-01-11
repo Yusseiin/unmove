@@ -44,21 +44,9 @@
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/Homepage.png" alt="Homepage" width="800">
-  <br>
-  <em>Homepage - Browse and select files from your downloads folder</em>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/Identify Media.png" alt="Identify Media" width="800">
-  <br>
-  <em>Identify Media - Search TVDB/TMDB and map episodes</em>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/multiseries.png" alt="Multi-Series" width="800">
-  <br>
-  <em>Multi-Series - Handle multiple TV series in a single workflow</em>
+  <img src="docs/screenshots/Homepage.png" alt="Homepage" width="280">
+  <img src="docs/screenshots/Identify Media.png" alt="Identify Media" width="280">
+  <img src="docs/screenshots/multiseries.png" alt="Multi-Series" width="280">
 </p>
 
 ## Installation
